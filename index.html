@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="robots" content="noindex, nofollow">
-    <title>中區收送件進度追蹤系統 (v46 Stable)</title>
+    <title>中區收送件進度追蹤系統 (v47 Stable)</title>
 
     <script src="https://unpkg.com/firebase@9.22.2/firebase-app-compat.js"></script>
     <script src="https://unpkg.com/firebase@9.22.2/firebase-firestore-compat.js"></script>
@@ -15,7 +15,7 @@
             --sidebar-bg: #ffffff; --text-main: #111827; --text-light: #6b7280;
             --border: #e5e7eb; --danger: #ef4444; --success: #10b981; --warning: #f59e0b;
             --genesis: #7e22ce; --line-green: #06c755; --blue: #2563eb;
-            --assign-bg: #4338ca; /* Dark Indigo */
+            --assign-bg: #4338ca; /* Deep Indigo */
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: var(--bg); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; }
@@ -38,6 +38,7 @@
         .avatar { width: 40px; height: 40px; background: var(--primary); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; flex-shrink: 0; }
         .logout-link { font-size: 0.8rem; color: var(--danger); cursor: pointer; margin-top: 2px;}
         
+        /* Sidebar Buttons */
         .sidebar-btn { padding: 10px; border-radius: 6px; text-align: center; cursor: pointer; font-weight: 600; margin-bottom: 10px; display: block; font-size: 0.9rem; border: 1px solid transparent; width: 100%; }
         .sidebar-btn:hover { opacity: 0.9; }
         .btn-nav-active { background: var(--primary); color: white; border-color: var(--primary); }
@@ -49,6 +50,7 @@
         .btn-settings { background: #f0fdfa; color: #0f766e; border: 1px solid #ccfbf1; } 
         .btn-import { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
         .btn-client-search { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
+        .btn-assign-settings { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
 
         .sidebar-section h3 { font-size: 0.85rem; text-transform: uppercase; color: var(--text-light); letter-spacing: 1px; margin-bottom: 1rem; }
         input[type="date"] { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); box-sizing: border-box; font-family: inherit; }
@@ -101,24 +103,24 @@
         .task-checkbox { width: 22px; height: 22px; border: 2px solid #cbd5e1; border-radius: 5px; margin-right: 15px; cursor: pointer; flex-shrink: 0; display: grid; place-items: center; margin-top: 3px; }
         .task-checkbox:hover { border-color: var(--primary); }
         .task-content { flex-grow: 1; display: flex; flex-direction: column; padding-right: 10px; }
-        .task-title { font-size: 1rem; line-height: 1.5; word-break: break-all; padding: 2px 4px; border-radius: 4px; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center;}
+        .task-title { font-size: 1rem; line-height: 1.5; word-break: break-all; padding: 2px 4px; border-radius: 4px; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; }
         .task-meta { font-size: 0.8rem; color: var(--text-light); margin-top: 6px; line-height: 1.4; }
         .completed-info { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; display: inline-block; font-weight: 500; }
         .task-item.completed-item .task-title { color: #9ca3af; text-decoration: line-through; }
         .ngs-badge { display: inline-block; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc; background: #fdfdfd; margin-right: 5px; margin-top: 3px; color: #555; }
         
-        /* === VERY OBVIOUS ASSIGN BADGE === */
+        /* NEW: Assignment Badge - Large and Visible */
         .assign-badge { 
             display: inline-block; 
-            font-size: 0.95rem; /* Big font */
-            background-color: var(--assign-bg); /* Indigo */
-            color: #ffffff; 
+            font-size: 0.95rem; 
+            background-color: var(--assign-bg); 
+            color: white; 
             padding: 4px 10px; 
             border-radius: 6px; 
             margin-left: 10px; 
             vertical-align: middle; 
-            font-weight: 800; /* Bold */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3); /* Shadow */
+            font-weight: 800; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
             white-space: nowrap;
             letter-spacing: 0.5px;
             border: 1px solid #312e81;
@@ -175,10 +177,9 @@
         .btn-cancel { background: #f3f4f6; color: #4b5563; }
         .btn-save { background: var(--primary); color: white; }
 
-        /* User Settings */
+        /* User List and Settings Styles */
         .user-list, .settings-list, .assign-list { list-style: none; padding: 0; margin: 0; }
         .user-item { display: flex; flex-direction: column; padding: 15px; border: 1px solid #eee; background: white; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: 0.2s; }
-        .user-item:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.05); transform: translateY(-1px); }
         .user-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .user-name { font-weight: 700; font-size: 1.05rem; color: #1f2937; }
         .user-role-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; margin-left: 8px; border: 1px solid #ddd; font-weight: 500; }
@@ -191,6 +192,8 @@
         
         .settings-container { margin-top: 15px; }
         .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        
+        /* Assignment Settings */
         .assign-section { border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #fafafa; }
         .assign-sec-title { font-weight: bold; margin-bottom: 8px; color: var(--primary); font-size: 0.95rem; }
         .assign-checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -243,7 +246,8 @@
         <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
 
         <div class="admin-btn btn-perm" id="adminPanelBtn" onclick="openUserModal()">👥 成員權限管理</div>
-        <div class="admin-btn btn-settings" id="settingsBtn" onclick="openSettingsModal()">⚙️ 標籤選單後台設定</div>
+        <div class="admin-btn btn-settings" id="salesSettingsBtn" onclick="openSalesSettings()">⚙️ NGS 業務設定</div>
+        <div class="admin-btn btn-assign-settings" id="assignSettingsBtn" onclick="openAssignSettingsModal()">👤 指派任務帳號設定</div>
         <div class="admin-btn btn-import" id="importBtn" onclick="openImportModal()">📥 批量匯入任務</div>
         <div class="admin-btn btn-stats" id="statsPanelBtn" onclick="openStatsModal()">📊 任務完成統整</div>
         
@@ -307,25 +311,18 @@
         <div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('importModal').style.display='none'">取消</button><button class="btn btn-save" onclick="processImport()">確認匯入</button></div>
     </div>
 </div>
-
 <div class="modal-overlay" id="taskModal"><div class="modal-card"><h2 id="modalTitle" style="margin-top:0; color:#111827;">新增案件/任務</h2><div class="input-group"><label>歸屬項目</label><select id="inputCategory" onchange="handleCategoryChange()"><option value="定序收件">📂 定序收件</option><option value="引子送件">🚀 引子送件</option><option value="產前收件">📦 產前收件</option><option value="業務交辦事項">📋 業務交辦事項</option><option value="NGS收件">🧬 NGS 收件 (需填詳細資料)</option></select></div><div id="ngs-form-container"><h4 style="margin-top:0; color:#0f766e;">📝 NGS 詳細資料 (必填)</h4><div class="ngs-row"><label>1. 單位</label><input type="text" id="ngsUnit" placeholder="輸入單位" oninput="generateNgsTitle()"></div><div class="ngs-row"><label>2. 主持人</label><input type="text" id="ngsPI" placeholder="輸入主持人" oninput="generateNgsTitle()"></div><div class="ngs-row"><label>3. 樣本處理需求</label><select id="ngsNeeds" onchange="handleNgsNeedsChange(); generateNgsTitle()"><option value="">請選擇</option><option value="萃取">萃取 (Extraction)</option><option value="QC">QC</option></select></div><div id="ngs-extraction-fields"><div class="ngs-row"><label>4-1.1 檢體種類</label><select id="ngsSampleTypeSelect" onchange="handleDropdownChange('ngsSampleTypeSelect', 'ngsSampleTypeInput')"><option value="Cell">Cell</option><option value="Blood">Blood</option><option value="Tissue">Tissue</option><option value="Plant">Plant</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsSampleTypeInput" placeholder="請輸入檢體種類" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-1.2 保存溫度</label><select id="ngsTemp"><option value="常溫">常溫</option><option value="4°C">4°C</option><option value="-20°C">-20°C</option><option value="-80°C">-80°C</option></select></div><div class="ngs-row"><label>4-1.3 歸還</label><select id="ngsReturn"><option value="是">是</option><option value="否">否</option></select></div><div class="ngs-row"><label>4-1.4 樣本數量</label><input type="text" id="ngsCount" placeholder="填寫數量"></div><div class="ngs-row"><label>4-1.5 後續實驗種類</label><select id="ngsExpTypeSelect" onchange="handleDropdownChange('ngsExpTypeSelect', 'ngsExpTypeInput'); generateNgsTitle()"><option value="">請選擇</option><option value="Seq Only">Seq Only</option><option value="DGE">DGE</option><option value="Small RNA">Small RNA</option><option value="WES">WES</option><option value="WGS">WGS</option><option value="PIPseq">PIPseq</option><option value="Amplicon Sequence">Amplicon Sequence</option><option value="細菌WGS">細菌WGS</option><option value="metagenome">metagenome</option><option value="16s">16s</option><option value="16sFL">16sFL</option><option value="Olink">Olink</option><option value="10x">10x</option><option value="RADseq">RADseq</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsExpTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;" oninput="generateNgsTitle()"></div><div class="ngs-row"><label>4-1.6 實驗平台</label><select id="ngsPlatformSelect" onchange="handleDropdownChange('ngsPlatformSelect', 'ngsPlatformInput')"><option value="Novaseq X Plus">Novaseq X Plus</option><option value="Miseq">Miseq</option><option value="PacBio">PacBio</option><option value="Nanopore">Nanopore</option><option value="Olink">Olink</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsPlatformInput" placeholder="輸入平台" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-1.7 負責業務</label><select id="ngsSales"></select></div></div><div id="ngs-qc-fields"><div class="ngs-row"><label>4-2.1 核酸種類</label><select id="ngsNucleicTypeSelect" onchange="handleDropdownChange('ngsNucleicTypeSelect', 'ngsNucleicTypeInput'); generateNgsTitle()"><option value="">請選擇</option><option value="DNA">DNA</option><option value="RNA">RNA</option><option value="Library">Library</option><option value="miRNA">miRNA</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsNucleicTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;" oninput="generateNgsTitle()"></div><div class="ngs-row"><label>4-2.2 保存溫度</label><select id="ngsQcTemp"><option value="常溫">常溫</option><option value="4°C">4°C</option><option value="-20°C">-20°C</option><option value="-80°C">-80°C</option></select></div><div class="ngs-row"><label>4-2.3 歸還</label><select id="ngsQcReturn"><option value="是">是</option><option value="否">否</option></select></div><div class="ngs-row"><label>4-2.4 樣本數量</label><input type="text" id="ngsQcCount" placeholder="填寫數量"></div><div class="ngs-row"><label>4-2.5 後續實驗種類</label><select id="ngsQcExpTypeSelect" onchange="handleDropdownChange('ngsQcExpTypeSelect', 'ngsQcExpTypeInput')"><option value="">請選擇</option><option value="Seq Only">Seq Only</option><option value="DGE">DGE</option><option value="Small RNA">Small RNA</option><option value="WES">WES</option><option value="WGS">WGS</option><option value="PIPseq">PIPseq</option><option value="Amplicon Sequence">Amplicon Sequence</option><option value="細菌WGS">細菌WGS</option><option value="metagenome">metagenome</option><option value="16s">16s</option><option value="16sFL">16sFL</option><option value="Olink">Olink</option><option value="10x">10x</option><option value="RADseq">RADseq</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsQcExpTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-2.6 實驗平台</label><select id="ngsQcPlatformSelect" onchange="handleDropdownChange('ngsQcPlatformSelect', 'ngsQcPlatformInput')"><option value="Novaseq X Plus">Novaseq X Plus</option><option value="Miseq">Miseq</option><option value="PacBio">PacBio</option><option value="Nanopore">Nanopore</option><option value="Olink">Olink</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsQcPlatformInput" placeholder="輸入平台" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-2.7 負責業務</label><select id="ngsQcSales"></select></div></div></div><div class="input-group"><label>任務內容 (選取文字可編輯樣式)</label><div class="editor-toolbar"><button class="tool-btn" onclick="formatDoc('bold')" title="粗體"><b>B</b></button><div class="separator"></div><button class="tool-btn" onclick="formatDoc('foreColor', '#ef4444')" title="紅字"><span class="color-dot" style="background:#ef4444"></span></button><button class="tool-btn" onclick="formatDoc('foreColor', '#2563eb')" title="藍字"><span class="color-dot" style="background:#2563eb"></span></button><button class="tool-btn" onclick="formatDoc('foreColor', '#10b981')" title="綠字"><span class="color-dot" style="background:#10b981"></span></button><button class="tool-btn" onclick="formatDoc('foreColor', '#000000')" title="黑字"><span class="color-dot" style="background:#000000"></span></button><div class="separator"></div><button class="tool-btn" onclick="formatDoc('hiliteColor', '#fecaca')" title="紅底" style="background:#fecaca">A</button><button class="tool-btn" onclick="formatDoc('hiliteColor', '#bfdbfe')" title="藍底" style="background:#bfdbfe">A</button><button class="tool-btn" onclick="formatDoc('hiliteColor', '#bbf7d0')" title="綠底" style="background:#bbf7d0">A</button><button class="tool-btn" onclick="formatDoc('hiliteColor', '#ffffff')" title="無底" style="background:#fff">✕</button><div class="separator"></div><select class="tool-select" onchange="formatDoc('fontSize', this.value); this.value='';" title="字體大小"><option value="">字體大小</option><option value="2">小</option><option value="3">中</option><option value="5">大</option><option value="7">特大</option></select></div><div id="inputTitle" contenteditable="true" placeholder="輸入內容..."></div></div><div class="modal-btns"><button class="btn btn-cancel" onclick="closeModal()">取消</button><button class="btn btn-save" id="btnSaveTask" onclick="saveTask()">確認</button></div></div></div>
+<div class="modal-overlay" id="salesSettingsModal"><div class="modal-card" style="width: 450px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">⚙️ NGS 負責業務設定</h3><div style="display:flex; gap:10px; margin-bottom:15px;"><input type="text" id="newSalesName" placeholder="輸入新業務姓名" style="flex-grow:1; padding:8px; border:1px solid #ccc; border-radius:4px;"><button class="btn btn-save" onclick="addSalesOption()">新增</button></div><ul class="settings-list" id="salesOptionList"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('salesSettingsModal').style.display='none'">關閉</button></div></div></div>
+<div class="modal-overlay" id="historyModal"><div class="modal-card" style="width: 400px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📋 編輯/操作紀錄</h3><ul class="log-list" id="logList"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('historyModal').style.display='none'">關閉</button></div></div></div>
+<div class="modal-overlay" id="userModal"><div class="modal-card" style="width: 650px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">👥 成員權限管理</h3><p style="font-size:0.85rem; color:#666; margin-bottom:10px;"><span style="color:#7e22ce; font-weight:bold;">🟣 創世神</span>：最高權限，不可被修改。<br>高級管理者可編輯資料；管理者僅能核准。</p><ul class="user-list" id="userListDisplay"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('userModal').style.display='none'">關閉</button></div></div></div>
+<div class="modal-overlay" id="statsModal"><div class="modal-card" style="width: 700px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📊 任務完成統整</h3><div class="stats-filter-row"><div><label style="font-size:0.8rem;">開始日期</label><input type="date" id="statsDateStart"></div><div><label style="font-size:0.8rem;">結束日期</label><input type="date" id="statsDateEnd"></div><div><label style="font-size:0.8rem;">檢索帳號</label><select id="statsUserSelect"><option value="all">-- 所有帳號 (總覽) --</option></select></div><div style="display:flex; align-items:flex-end;"><button class="btn btn-save" onclick="updateStats()">查詢</button></div></div><div class="stats-result-area" id="statsResultDisplay"></div><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('statsModal').style.display='none'">關閉</button></div></div></div>
 
-<div class="modal-overlay" id="settingsModal">
+<div class="modal-overlay" id="assignSettingsModal">
     <div class="modal-card" style="width: 500px;">
-        <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">⚙️ 標籤選單後台設定</h3>
-        <select id="settingsTypeSelect" onchange="switchSettingsView()" style="width:100%; padding:10px; margin-bottom:15px; border-radius:6px; border:1px solid #ccc; font-size:1rem;">
-            <option value="sales">NGS 負責業務設定</option>
-            <option value="assign">指派任務帳號設定</option>
-        </select>
-        <div id="viewSalesSettings">
-            <div style="display:flex; gap:10px; margin-bottom:15px;"><input type="text" id="newSalesName" placeholder="輸入新業務姓名" style="flex-grow:1; padding:8px; border:1px solid #ccc; border-radius:4px;"><button class="btn btn-save" onclick="addSalesOption()">新增</button></div>
-            <ul class="settings-list" id="salesOptionList"></ul>
-        </div>
-        <div id="viewAssignSettings" style="display:none;">
-            <div id="assignRulesContainer"></div>
-            <div style="text-align:right; margin-top:10px;"><button class="btn btn-save" onclick="saveAssignmentRules()">儲存設定</button></div>
-        </div>
-        <div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('settingsModal').style.display='none'">關閉</button></div>
+        <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">👤 指派任務帳號設定</h3>
+        <div id="assignRulesContainer"></div>
+        <div style="text-align:right; margin-top:10px;"><button class="btn btn-save" onclick="saveAssignmentRules()">儲存設定</button></div>
+        <div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('assignSettingsModal').style.display='none'">關閉</button></div>
     </div>
 </div>
 
@@ -336,15 +333,6 @@
         <div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('assignModal').style.display='none'">取消</button></div>
     </div>
 </div>
-
-<div class="modal-overlay" id="historyModal"><div class="modal-card" style="width: 400px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📋 編輯/操作紀錄</h3><ul class="log-list" id="logList"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('historyModal').style.display='none'">關閉</button></div></div></div>
-<div class="modal-overlay" id="userModal"><div class="modal-card" style="width: 650px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:10px;">
-        <h3 style="margin:0;">👥 成員權限管理</h3>
-        <select id="userFilterSelect" onchange="renderUserList()" style="padding:5px; border-radius:4px; border:1px solid #ddd; font-size:0.85rem;"><option value="all">顯示全部</option><option value="creator">🟣 創世神</option><option value="senior">高級管理者</option><option value="admin">管理者</option><option value="user">一般者</option><option value="pending">待審核</option></select>
-    </div>
-    <ul class="user-list" id="userListDisplay"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('userModal').style.display='none'">關閉</button></div></div></div>
-<div class="modal-overlay" id="statsModal"><div class="modal-card" style="width: 700px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📊 任務完成統整</h3><div class="stats-filter-row"><div><label style="font-size:0.8rem;">開始日期</label><input type="date" id="statsDateStart"></div><div><label style="font-size:0.8rem;">結束日期</label><input type="date" id="statsDateEnd"></div><div><label style="font-size:0.8rem;">檢索帳號</label><select id="statsUserSelect"><option value="all">-- 所有帳號 (總覽) --</option></select></div><div style="display:flex; align-items:flex-end;"><button class="btn btn-save" onclick="updateStats()">查詢</button></div></div><div class="stats-result-area" id="statsResultDisplay"></div><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('statsModal').style.display='none'">關閉</button></div></div></div>
 
 <script>
     // --- FIREBASE CONFIGURATION ---
@@ -361,6 +349,7 @@
     const db = firebase.firestore();
 
     const ORDERED_CATEGORIES = ["定序收件", "引子送件", "產前收件", "業務交辦事項", "NGS收件"];
+    // ⚠️ 您的 API 網址 (請確認後端已更新為讀取 building/floor 分開的版本)
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw9sCxtJ-rcRLdkwwGJgBCUCKxCFXujD4Ciq_fJxFqbly4Wldb-9nTSE5kqTst16hKg2Q/exec";
 
     let state = {
@@ -398,17 +387,18 @@
     });
     db.collection('users').onSnapshot(snapshot => {
         state.users = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
-        if(document.getElementById('userModal').style.display === 'flex') renderUserList();
+        if(document.getElementById('userModal').style.display === 'flex') openUserModal();
         if (state.currentUser) {
             const me = state.users.find(u => u.username === state.currentUser.name);
             if (!me) { alert('您的帳號已被移除，即將強制登出。'); logout(); } 
             else if (state.currentUser.role !== me.role) { state.currentUser.role = me.role; localStorage.setItem('tt_current_user', JSON.stringify(state.currentUser)); updateUIForRole(); }
         }
     });
+    // Listen for Settings
     db.collection('settings').doc('ngs_sales').onSnapshot(doc => {
         if(doc.exists) state.salesOptions = doc.data().list || ['Jeff', '廖軒逵'];
         else { state.salesOptions = ['Jeff', '廖軒逵']; db.collection('settings').doc('ngs_sales').set({ list: state.salesOptions }); }
-        if(document.getElementById('settingsModal').style.display === 'flex' && document.getElementById('settingsTypeSelect').value === 'sales') openSalesSettings();
+        if(document.getElementById('salesSettingsModal').style.display === 'flex') openSalesSettings();
     });
     db.collection('settings').doc('assignment_rules').onSnapshot(doc => {
         state.assignmentRules = doc.exists ? doc.data() : {};
@@ -483,28 +473,29 @@
         const canConfig = ['creator','senior'].includes(state.currentUser.role);
         document.getElementById('adminPanelBtn').style.display = canManage ? 'block' : 'none';
         document.getElementById('statsPanelBtn').style.display = canConfig ? 'block' : 'none';
-        document.getElementById('settingsBtn').style.display = canConfig ? 'block' : 'none'; 
+        document.getElementById('salesSettingsBtn').style.display = canConfig ? 'block' : 'none';
+        document.getElementById('assignSettingsBtn').style.display = canConfig ? 'block' : 'none'; // Separate Btn
         document.getElementById('importBtn').style.display = canManage ? 'block' : 'none'; 
     }
 
-    /* --- SETTINGS HUB --- */
-    function openSettingsModal() { document.getElementById('settingsModal').style.display = 'flex'; document.getElementById('settingsTypeSelect').value = 'sales'; switchSettingsView(); }
-    function switchSettingsView() {
-        const type = document.getElementById('settingsTypeSelect').value;
-        document.getElementById('viewSalesSettings').style.display = type === 'sales' ? 'block' : 'none';
-        document.getElementById('viewAssignSettings').style.display = type === 'assign' ? 'block' : 'none';
-        if(type === 'sales') openSalesSettings(); if(type === 'assign') openAssignmentSettings();
+    /* --- SALES SETTINGS --- */
+    function openSalesSettings() {
+        const list = document.getElementById('salesOptionList'); list.innerHTML = '';
+        state.salesOptions.forEach((opt, index) => { const li = document.createElement('li'); li.className = 'setting-item'; li.innerHTML = `<span>${opt}</span><div><button class="btn-icon" onclick="editSalesOption(${index})">✏️</button><button class="btn-icon" style="color:red;" onclick="deleteSalesOption(${index})">🗑️</button></div>`; list.appendChild(li); });
+        document.getElementById('salesSettingsModal').style.display = 'flex';
     }
-    function openSalesSettings() { const list = document.getElementById('salesOptionList'); list.innerHTML = ''; state.salesOptions.forEach((opt, index) => { const li = document.createElement('li'); li.className = 'setting-item'; li.innerHTML = `<span>${opt}</span><div><button class="btn-icon" onclick="editSalesOption(${index})">✏️</button><button class="btn-icon" style="color:red;" onclick="deleteSalesOption(${index})">🗑️</button></div>`; list.appendChild(li); }); }
     function saveSalesSettings() { db.collection('settings').doc('ngs_sales').update({ list: state.salesOptions }); }
     function addSalesOption() { const val = document.getElementById('newSalesName').value.trim(); if(val) { state.salesOptions.push(val); saveSalesSettings(); document.getElementById('newSalesName').value = ''; } }
     function deleteSalesOption(index) { if(confirm('確定刪除？')) { state.salesOptions.splice(index, 1); saveSalesSettings(); } }
     function editSalesOption(index) { const newVal = prompt("修改:", state.salesOptions[index]); if(newVal && newVal.trim()) { state.salesOptions[index] = newVal.trim(); saveSalesSettings(); } }
-    
-    function openAssignmentSettings() {
+    function populateSalesDropdowns() { const optsHtml = state.salesOptions.map(s => `<option value="${s}">${s}</option>`).join(''); const s1 = document.getElementById('ngsSales'); const s2 = document.getElementById('ngsQcSales'); if(s1) s1.innerHTML = optsHtml; if(s2) s2.innerHTML = optsHtml; }
+
+    /* --- ASSIGNMENT SETTINGS (Standalone) --- */
+    function openAssignSettingsModal() {
         const container = document.getElementById('assignRulesContainer'); container.innerHTML = '';
         const roleOrder = { 'creator': 0, 'senior': 1, 'admin': 2, 'user': 3 };
         const approvedUsers = state.users.filter(u => u.isApproved).sort((a,b) => (roleOrder[a.role]||4) - (roleOrder[b.role]||4));
+        
         ORDERED_CATEGORIES.forEach(cat => {
             const wrapper = document.createElement('div'); wrapper.className = 'assign-section';
             const currentAllowed = state.assignmentRules[cat] || [];
@@ -517,6 +508,7 @@
             wrapper.innerHTML = `<div class="assign-sec-title">${cat}</div><div class="assign-checkbox-group">${checkboxes}</div>`;
             container.appendChild(wrapper);
         });
+        document.getElementById('assignSettingsModal').style.display = 'flex';
     }
     function saveAssignmentRules() {
         const newRules = {};
@@ -564,6 +556,123 @@
         }
         alert(`匯入完成！成功: ${successCount}`); document.getElementById('importModal').style.display = 'none';
     }
+
+    /* --- STATS LOGIC (Fixed) --- */
+    function openStatsModal() {
+        const modal = document.getElementById('statsModal'); 
+        const userSelect = document.getElementById('statsUserSelect'); 
+        const startInput = document.getElementById('statsDateStart'); 
+        const endInput = document.getElementById('statsDateEnd');
+        
+        userSelect.innerHTML = '<option value="all">-- 所有帳號 (總覽) --</option>';
+        const uniqueUsers = [...new Set(state.tasks.filter(t=>t.completed && t.completedBy).map(t=>t.completedBy))];
+        uniqueUsers.sort().forEach(u => { const opt = document.createElement('option'); opt.value = u; opt.innerText = getUserDisplayName(u); userSelect.appendChild(opt); });
+        
+        const year = new Date().getFullYear(); 
+        startInput.value = `${year}-01-01`; 
+        endInput.value = `${year}-12-31`;
+        
+        updateStats(); 
+        modal.style.display = 'flex';
+    }
+    function updateStats() {
+        const start = document.getElementById('statsDateStart').value; const end = document.getElementById('statsDateEnd').value;
+        const selectedUser = document.getElementById('statsUserSelect').value; const display = document.getElementById('statsResultDisplay'); display.innerHTML = '';
+        if(!start || !end) return;
+        const validTasks = state.tasks.filter(t => !t.completed || t.isDeleted || !t.completedBy ? false : (t.date >= start && t.date <= end));
+        if (selectedUser === 'all') {
+            const userCounts = {}; let total = 0;
+            validTasks.forEach(t => { if(!userCounts[t.completedBy]) userCounts[t.completedBy]=0; userCounts[t.completedBy]++; total++; });
+            if(total === 0) { display.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">此區間無完成資料</div>'; return; }
+            Object.entries(userCounts).sort((a,b)=>b[1]-a[1]).forEach(([user, count]) => {
+                const pct = Math.round((count/total)*100);
+                const card = document.createElement('div'); card.className = 'stat-card';
+                card.innerHTML = `<div class="stat-header"><span>${getUserDisplayName(user)}</span> <span>${count} 件</span></div><div class="stat-bar-container"><div class="stat-label"><span>佔比</span><span>${pct}%</span></div><div class="stat-track"><div class="stat-fill" style="width:${pct}%"></div></div></div>`;
+                display.appendChild(card);
+            });
+        } else {
+            const userTasks = validTasks.filter(t => t.completedBy === selectedUser); const total = userTasks.length;
+            if(total === 0) { display.innerHTML = `<div style="text-align:center; padding:20px; color:#888;">帳號 ${getUserDisplayName(selectedUser)} 在此區間無完成資料</div>`; return; }
+            const catCounts = {}; ORDERED_CATEGORIES.forEach(c => catCounts[c]=0);
+            userTasks.forEach(t => { if(catCounts[t.category]!==undefined) catCounts[t.category]++; });
+            const card = document.createElement('div'); card.className = 'stat-card';
+            card.innerHTML = `<div class="stat-header" style="border-bottom:1px solid #eee; padding-bottom:5px;">${getUserDisplayName(selectedUser)} - 總計 ${total} 件</div>`;
+            ORDERED_CATEGORIES.forEach(cat => {
+                const count = catCounts[cat]; const pct = total===0?0:Math.round((count/total)*100);
+                card.innerHTML += `<div style="margin-top:10px;"><div class="stat-label"><span>${cat}</span><span>${count} (${pct}%)</span></div><div class="stat-track"><div class="stat-fill" style="width:${pct}%"></div></div></div>`;
+            });
+            display.appendChild(card);
+        }
+    }
+
+    /* --- USER MANAGEMENT (Fixed) --- */
+    function openUserModal() {
+        const list = document.getElementById('userListDisplay'); 
+        const myRole = state.currentUser.role; 
+        const filterRole = document.getElementById('userFilterSelect') ? document.getElementById('userFilterSelect').value : 'all'; // Default to all if element missing
+        
+        list.innerHTML = '';
+        
+        // Sorting Logic: Creator > Senior > Admin > User > Pending
+        const roleOrder = { 'creator': 0, 'senior': 1, 'admin': 2, 'user': 3, 'pending': 4 };
+        
+        let displayUsers = state.users.sort((a,b) => {
+            const rA = a.isApproved ? (roleOrder[a.role]||3) : 4;
+            const rB = b.isApproved ? (roleOrder[b.role]||3) : 4;
+            return rA - rB;
+        });
+
+        // Filtering Logic
+        if (filterRole !== 'all') {
+            if (filterRole === 'pending') {
+                displayUsers = displayUsers.filter(u => !u.isApproved);
+            } else {
+                displayUsers = displayUsers.filter(u => u.isApproved && u.role === filterRole);
+            }
+        }
+
+        displayUsers.forEach(user => {
+            const li = document.createElement('li'); li.className = 'user-item';
+            let badgeClass = 'role-user'; let badgeText = '一般者';
+            if(user.role === 'creator') { badgeClass = 'role-creator'; badgeText = '🟣 創世神'; }
+            else if(user.role === 'senior') { badgeClass = 'role-senior'; badgeText = '高級管理者'; }
+            else if(user.role === 'admin') { badgeClass = 'role-admin'; badgeText = '管理者'; }
+            if(!user.isApproved) { badgeClass = ''; badgeText = '待審核'; }
+            
+            const isTargetCreator = user.role === 'creator';
+            let controlsHtml = '';
+            
+            if (myRole === 'creator' || myRole === 'senior') {
+                if (myRole === 'senior' && isTargetCreator) {
+                     controlsHtml = `<div class="user-edit-row"><span style="color:purple; font-weight:bold;">此為最高權限帳號，無法編輯。</span></div>`;
+                } else {
+                    const selUser = user.role === 'user' ? 'selected' : '';
+                    const selAdmin = user.role === 'admin' ? 'selected' : '';
+                    const selSenior = user.role === 'senior' ? 'selected' : '';
+                    const roleSelect = (myRole==='creator' && isTargetCreator) ? `<select disabled><option>創世神</option></select>` : `<select id="role_${user.docId}"><option value="user" ${selUser}>一般者</option><option value="admin" ${selAdmin}>管理者</option><option value="senior" ${selSenior}>高級管理者</option></select>`;
+                    
+                    controlsHtml = `
+                        <div class="user-edit-row">${roleSelect}<input type="text" id="note_${user.docId}" placeholder="備註" value="${user.remarks || ''}" style="width:50%"><input type="text" id="nick_${user.docId}" placeholder="稱謂 (選填)" value="${user.nickname || ''}" style="width:30%"></div>
+                        <div class="user-edit-row"><span class="readonly-text">密碼:</span><input type="password" id="pwd_${user.docId}" value="${user.password}" readonly style="background:#eee;color:#555;"><button class="btn-icon-eye" onclick="togglePasswordVisibility('pwd_${user.docId}')">👁️</button></div>
+                        <div style="text-align:right;"><button class="btn-approve" onclick="updateUser('${user.docId}')">${user.isApproved?'更新資料':'核准/更新'}</button>${!isTargetCreator ? `<button class="btn-reject" onclick="deleteUser('${user.docId}')">刪除</button>` : ''}</div>
+                    `;
+                }
+            } else {
+                let actionBtn = !user.isApproved ? `<button class="btn-approve" onclick="approveUserSimple('${user.docId}')">核准申請</button>` : `<span style="color:#10b981; font-size:0.85rem;">已核准</span>`;
+                controlsHtml = `<div class="user-edit-row"><span class="readonly-text">角色: ${badgeText}</span><span class="readonly-text" style="margin-left:15px;">備註: ${user.remarks || '(無)'}</span></div><div style="text-align:right;">${actionBtn}</div>`;
+            }
+            li.innerHTML = `<div class="user-header"><div><span class="user-name">${user.username}</span><span class="user-role-badge ${badgeClass}">${badgeText}</span></div></div>${controlsHtml}`;
+            list.appendChild(li);
+        });
+        document.getElementById('userModal').style.display = 'flex';
+    }
+    function togglePasswordVisibility(id) { const input = document.getElementById(id); input.type = input.type === "password" ? "text" : "password"; }
+    function updateUser(docId) {
+        const role = document.getElementById(`role_${docId}`).value; const note = document.getElementById(`note_${docId}`).value; const nick = document.getElementById(`nick_${docId}`).value;
+        db.collection('users').doc(docId).update({ role: role, remarks: note, nickname: nick, isApproved: true }).then(() => alert('資料已更新'));
+    }
+    function deleteUser(docId) { if(confirm('確定要刪除？')) db.collection('users').doc(docId).delete().then(() => openUserModal()); }
+    function approveUserSimple(docId) { db.collection('users').doc(docId).update({ isApproved: true }).then(() => alert('已核准')); }
 
     /* --- TASKS RENDER --- */
     function renderTasks() {
