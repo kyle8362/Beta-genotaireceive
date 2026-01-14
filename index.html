@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="robots" content="noindex, nofollow">
-    <title>中區收送件進度追蹤系統 (v48 Fixed)</title>
+    <title>中區收送件進度追蹤系統 (v47)</title>
 
     <script src="https://unpkg.com/firebase@9.22.2/firebase-app-compat.js"></script>
     <script src="https://unpkg.com/firebase@9.22.2/firebase-firestore-compat.js"></script>
@@ -15,7 +15,7 @@
             --sidebar-bg: #ffffff; --text-main: #111827; --text-light: #6b7280;
             --border: #e5e7eb; --danger: #ef4444; --success: #10b981; --warning: #f59e0b;
             --genesis: #7e22ce; --line-green: #06c755; --blue: #2563eb;
-            --assign-bg: #4338ca; /* Deep Indigo */
+            --assign-bg: #4338ca; /* Dark Indigo */
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: var(--bg); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; }
@@ -38,7 +38,6 @@
         .avatar { width: 40px; height: 40px; background: var(--primary); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; flex-shrink: 0; }
         .logout-link { font-size: 0.8rem; color: var(--danger); cursor: pointer; margin-top: 2px;}
         
-        /* Sidebar Buttons */
         .sidebar-btn { padding: 10px; border-radius: 6px; text-align: center; cursor: pointer; font-weight: 600; margin-bottom: 10px; display: block; font-size: 0.9rem; border: 1px solid transparent; width: 100%; }
         .sidebar-btn:hover { opacity: 0.9; }
         .btn-nav-active { background: var(--primary); color: white; border-color: var(--primary); }
@@ -50,14 +49,18 @@
         .btn-settings { background: #f0fdfa; color: #0f766e; border: 1px solid #ccfbf1; } 
         .btn-import { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
         .btn-client-search { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
-        .btn-assign-settings { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
 
         .sidebar-section h3 { font-size: 0.85rem; text-transform: uppercase; color: var(--text-light); letter-spacing: 1px; margin-bottom: 1rem; }
         input[type="date"] { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); box-sizing: border-box; font-family: inherit; }
-        .search-box input { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; margin-bottom: 10px; }
-        .search-results { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; }
-        .search-item { padding: 8px; font-size: 0.85rem; border-bottom: 1px solid #f3f4f6; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .search-item:hover { background: #f9fafb; color: var(--primary); }
+        
+        /* SEARCH FIX */
+        .search-box { position: relative; }
+        .search-box input { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; margin-bottom: 5px; }
+        .search-results { list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; background: white; border: 1px solid #eee; border-radius: 6px; display: none; /* Hidden by default */ }
+        .search-results.has-results { display: block; }
+        .search-item { padding: 10px; font-size: 0.85rem; border-bottom: 1px solid #f3f4f6; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+        .search-item:hover { background: #f0fdfa; color: var(--primary); }
+
         .history-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
         .history-item { padding: 10px; cursor: pointer; border-radius: 6px; color: var(--text-main); margin-bottom: 4px; display: flex; justify-content: space-between; }
         .history-item:hover { background: #f8fafc; }
@@ -109,18 +112,18 @@
         .task-item.completed-item .task-title { color: #9ca3af; text-decoration: line-through; }
         .ngs-badge { display: inline-block; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc; background: #fdfdfd; margin-right: 5px; margin-top: 3px; color: #555; }
         
-        /* === ENHANCED ASSIGN BADGE (LARGE & VISIBLE) === */
+        /* === ENHANCED ASSIGN BADGE === */
         .assign-badge { 
             display: inline-block; 
-            font-size: 0.95rem; /* Larger font */
-            background-color: var(--assign-bg); /* Indigo */
-            color: #ffffff; 
+            font-size: 0.95rem; 
+            background-color: var(--assign-bg); 
+            color: white; 
             padding: 4px 10px; 
             border-radius: 6px; 
             margin-left: 10px; 
             vertical-align: middle; 
-            font-weight: 800; /* Bold */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3); /* Shadow */
+            font-weight: 800; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
             white-space: nowrap;
             letter-spacing: 0.5px;
             border: 1px solid #312e81;
@@ -246,8 +249,7 @@
         <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
 
         <div class="admin-btn btn-perm" id="adminPanelBtn" onclick="openUserModal()">👥 成員權限管理</div>
-        <div class="admin-btn btn-settings" id="salesSettingsBtn" onclick="openSalesSettings()">⚙️ NGS 業務設定</div>
-        <div class="admin-btn btn-assign-settings" id="assignSettingsBtn" onclick="openAssignSettingsModal()">👤 指派任務帳號設定</div>
+        <div class="admin-btn btn-settings" id="settingsBtn" onclick="openSettingsModal()">⚙️ 標籤選單後台設定</div>
         <div class="admin-btn btn-import" id="importBtn" onclick="openImportModal()">📥 批量匯入任務</div>
         <div class="admin-btn btn-stats" id="statsPanelBtn" onclick="openStatsModal()">📊 任務完成統整</div>
         
@@ -313,17 +315,26 @@
 </div>
 
 <div class="modal-overlay" id="taskModal"><div class="modal-card"><h2 id="modalTitle" style="margin-top:0; color:#111827;">新增案件/任務</h2><div class="input-group"><label>歸屬項目</label><select id="inputCategory" onchange="handleCategoryChange()"><option value="定序收件">📂 定序收件</option><option value="引子送件">🚀 引子送件</option><option value="產前收件">📦 產前收件</option><option value="業務交辦事項">📋 業務交辦事項</option><option value="NGS收件">🧬 NGS 收件 (需填詳細資料)</option></select></div><div id="ngs-form-container"><h4 style="margin-top:0; color:#0f766e;">📝 NGS 詳細資料 (必填)</h4><div class="ngs-row"><label>1. 單位</label><input type="text" id="ngsUnit" placeholder="輸入單位" oninput="generateNgsTitle()"></div><div class="ngs-row"><label>2. 主持人</label><input type="text" id="ngsPI" placeholder="輸入主持人" oninput="generateNgsTitle()"></div><div class="ngs-row"><label>3. 樣本處理需求</label><select id="ngsNeeds" onchange="handleNgsNeedsChange(); generateNgsTitle()"><option value="">請選擇</option><option value="萃取">萃取 (Extraction)</option><option value="QC">QC</option></select></div><div id="ngs-extraction-fields"><div class="ngs-row"><label>4-1.1 檢體種類</label><select id="ngsSampleTypeSelect" onchange="handleDropdownChange('ngsSampleTypeSelect', 'ngsSampleTypeInput')"><option value="Cell">Cell</option><option value="Blood">Blood</option><option value="Tissue">Tissue</option><option value="Plant">Plant</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsSampleTypeInput" placeholder="請輸入檢體種類" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-1.2 保存溫度</label><select id="ngsTemp"><option value="常溫">常溫</option><option value="4°C">4°C</option><option value="-20°C">-20°C</option><option value="-80°C">-80°C</option></select></div><div class="ngs-row"><label>4-1.3 歸還</label><select id="ngsReturn"><option value="是">是</option><option value="否">否</option></select></div><div class="ngs-row"><label>4-1.4 樣本數量</label><input type="text" id="ngsCount" placeholder="填寫數量"></div><div class="ngs-row"><label>4-1.5 後續實驗種類</label><select id="ngsExpTypeSelect" onchange="handleDropdownChange('ngsExpTypeSelect', 'ngsExpTypeInput'); generateNgsTitle()"><option value="">請選擇</option><option value="Seq Only">Seq Only</option><option value="DGE">DGE</option><option value="Small RNA">Small RNA</option><option value="WES">WES</option><option value="WGS">WGS</option><option value="PIPseq">PIPseq</option><option value="Amplicon Sequence">Amplicon Sequence</option><option value="細菌WGS">細菌WGS</option><option value="metagenome">metagenome</option><option value="16s">16s</option><option value="16sFL">16sFL</option><option value="Olink">Olink</option><option value="10x">10x</option><option value="RADseq">RADseq</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsExpTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;" oninput="generateNgsTitle()"></div><div class="ngs-row"><label>4-1.6 實驗平台</label><select id="ngsPlatformSelect" onchange="handleDropdownChange('ngsPlatformSelect', 'ngsPlatformInput')"><option value="Novaseq X Plus">Novaseq X Plus</option><option value="Miseq">Miseq</option><option value="PacBio">PacBio</option><option value="Nanopore">Nanopore</option><option value="Olink">Olink</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsPlatformInput" placeholder="輸入平台" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-1.7 負責業務</label><select id="ngsSales"></select></div></div><div id="ngs-qc-fields"><div class="ngs-row"><label>4-2.1 核酸種類</label><select id="ngsNucleicTypeSelect" onchange="handleDropdownChange('ngsNucleicTypeSelect', 'ngsNucleicTypeInput'); generateNgsTitle()"><option value="">請選擇</option><option value="DNA">DNA</option><option value="RNA">RNA</option><option value="Library">Library</option><option value="miRNA">miRNA</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsNucleicTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;" oninput="generateNgsTitle()"></div><div class="ngs-row"><label>4-2.2 保存溫度</label><select id="ngsQcTemp"><option value="常溫">常溫</option><option value="4°C">4°C</option><option value="-20°C">-20°C</option><option value="-80°C">-80°C</option></select></div><div class="ngs-row"><label>4-2.3 歸還</label><select id="ngsQcReturn"><option value="是">是</option><option value="否">否</option></select></div><div class="ngs-row"><label>4-2.4 樣本數量</label><input type="text" id="ngsQcCount" placeholder="填寫數量"></div><div class="ngs-row"><label>4-2.5 後續實驗種類</label><select id="ngsQcExpTypeSelect" onchange="handleDropdownChange('ngsQcExpTypeSelect', 'ngsQcExpTypeInput')"><option value="">請選擇</option><option value="Seq Only">Seq Only</option><option value="DGE">DGE</option><option value="Small RNA">Small RNA</option><option value="WES">WES</option><option value="WGS">WGS</option><option value="PIPseq">PIPseq</option><option value="Amplicon Sequence">Amplicon Sequence</option><option value="細菌WGS">細菌WGS</option><option value="metagenome">metagenome</option><option value="16s">16s</option><option value="16sFL">16sFL</option><option value="Olink">Olink</option><option value="10x">10x</option><option value="RADseq">RADseq</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsQcExpTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-2.6 實驗平台</label><select id="ngsQcPlatformSelect" onchange="handleDropdownChange('ngsQcPlatformSelect', 'ngsQcPlatformInput')"><option value="Novaseq X Plus">Novaseq X Plus</option><option value="Miseq">Miseq</option><option value="PacBio">PacBio</option><option value="Nanopore">Nanopore</option><option value="Olink">Olink</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsQcPlatformInput" placeholder="輸入平台" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-2.7 負責業務</label><select id="ngsQcSales"></select></div></div></div><div class="input-group"><label>任務內容 (選取文字可編輯樣式)</label><div class="editor-toolbar"><button class="tool-btn" onclick="formatDoc('bold')" title="粗體"><b>B</b></button><div class="separator"></div><button class="tool-btn" onclick="formatDoc('foreColor', '#ef4444')" title="紅字"><span class="color-dot" style="background:#ef4444"></span></button><button class="tool-btn" onclick="formatDoc('foreColor', '#2563eb')" title="藍字"><span class="color-dot" style="background:#2563eb"></span></button><button class="tool-btn" onclick="formatDoc('foreColor', '#10b981')" title="綠字"><span class="color-dot" style="background:#10b981"></span></button><button class="tool-btn" onclick="formatDoc('foreColor', '#000000')" title="黑字"><span class="color-dot" style="background:#000000"></span></button><div class="separator"></div><button class="tool-btn" onclick="formatDoc('hiliteColor', '#fecaca')" title="紅底" style="background:#fecaca">A</button><button class="tool-btn" onclick="formatDoc('hiliteColor', '#bfdbfe')" title="藍底" style="background:#bfdbfe">A</button><button class="tool-btn" onclick="formatDoc('hiliteColor', '#bbf7d0')" title="綠底" style="background:#bbf7d0">A</button><button class="tool-btn" onclick="formatDoc('hiliteColor', '#ffffff')" title="無底" style="background:#fff">✕</button><div class="separator"></div><select class="tool-select" onchange="formatDoc('fontSize', this.value); this.value='';" title="字體大小"><option value="">字體大小</option><option value="2">小</option><option value="3">中</option><option value="5">大</option><option value="7">特大</option></select></div><div id="inputTitle" contenteditable="true" placeholder="輸入內容..."></div></div><div class="modal-btns"><button class="btn btn-cancel" onclick="closeModal()">取消</button><button class="btn btn-save" id="btnSaveTask" onclick="saveTask()">確認</button></div></div></div>
-<div class="modal-overlay" id="salesSettingsModal"><div class="modal-card" style="width: 450px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">⚙️ NGS 負責業務設定</h3><div style="display:flex; gap:10px; margin-bottom:15px;"><input type="text" id="newSalesName" placeholder="輸入新業務姓名" style="flex-grow:1; padding:8px; border:1px solid #ccc; border-radius:4px;"><button class="btn btn-save" onclick="addSalesOption()">新增</button></div><ul class="settings-list" id="salesOptionList"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('salesSettingsModal').style.display='none'">關閉</button></div></div></div>
-<div class="modal-overlay" id="historyModal"><div class="modal-card" style="width: 400px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📋 編輯/操作紀錄</h3><ul class="log-list" id="logList"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('historyModal').style.display='none'">關閉</button></div></div></div>
-<div class="modal-overlay" id="userModal"><div class="modal-card" style="width: 650px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">👥 成員權限管理</h3><div style="margin-bottom:10px; text-align:right;"><select id="userFilterSelect" onchange="renderUserList()" style="padding:5px; border-radius:4px; border:1px solid #ddd; font-size:0.85rem;"><option value="all">顯示全部</option><option value="creator">🟣 創世神</option><option value="senior">高級管理者</option><option value="admin">管理者</option><option value="user">一般者</option><option value="pending">待審核</option></select></div><ul class="user-list" id="userListDisplay"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('userModal').style.display='none'">關閉</button></div></div></div>
-<div class="modal-overlay" id="statsModal"><div class="modal-card" style="width: 700px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📊 任務完成統整</h3><div class="stats-filter-row"><div><label style="font-size:0.8rem;">開始日期</label><input type="date" id="statsDateStart"></div><div><label style="font-size:0.8rem;">結束日期</label><input type="date" id="statsDateEnd"></div><div><label style="font-size:0.8rem;">檢索帳號</label><select id="statsUserSelect"><option value="all">-- 所有帳號 (總覽) --</option></select></div><div style="display:flex; align-items:flex-end;"><button class="btn btn-save" onclick="updateStats()">查詢</button></div></div><div class="stats-result-area" id="statsResultDisplay"></div><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('statsModal').style.display='none'">關閉</button></div></div></div>
 
-<div class="modal-overlay" id="assignSettingsModal">
+<div class="modal-overlay" id="settingsModal">
     <div class="modal-card" style="width: 500px;">
-        <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">👤 指派任務帳號設定</h3>
-        <div id="assignRulesContainer"></div>
-        <div style="text-align:right; margin-top:10px;"><button class="btn btn-save" onclick="saveAssignmentRules()">儲存設定</button></div>
-        <div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('assignSettingsModal').style.display='none'">關閉</button></div>
+        <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">⚙️ 標籤選單後台設定</h3>
+        <select id="settingsTypeSelect" onchange="switchSettingsView()" style="width:100%; padding:10px; margin-bottom:15px; border-radius:6px; border:1px solid #ccc; font-size:1rem;">
+            <option value="sales">NGS 負責業務設定</option>
+            <option value="assign">指派任務帳號設定</option>
+        </select>
+        
+        <div id="viewSalesSettings">
+            <div style="display:flex; gap:10px; margin-bottom:15px;"><input type="text" id="newSalesName" placeholder="輸入新業務姓名" style="flex-grow:1; padding:8px; border:1px solid #ccc; border-radius:4px;"><button class="btn btn-save" onclick="addSalesOption()">新增</button></div>
+            <ul class="settings-list" id="salesOptionList"></ul>
+        </div>
+        
+        <div id="viewAssignSettings" style="display:none;">
+            <div id="assignRulesContainer"></div>
+            <div style="text-align:right; margin-top:10px;"><button class="btn btn-save" onclick="saveAssignmentRules()">儲存設定</button></div>
+        </div>
+
+        <div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('settingsModal').style.display='none'">關閉</button></div>
     </div>
 </div>
 
@@ -334,6 +345,15 @@
         <div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('assignModal').style.display='none'">取消</button></div>
     </div>
 </div>
+
+<div class="modal-overlay" id="historyModal"><div class="modal-card" style="width: 400px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📋 編輯/操作紀錄</h3><ul class="log-list" id="logList"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('historyModal').style.display='none'">關閉</button></div></div></div>
+<div class="modal-overlay" id="userModal"><div class="modal-card" style="width: 650px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:10px;">
+        <h3 style="margin:0;">👥 成員權限管理</h3>
+        <select id="userFilterSelect" onchange="renderUserList()" style="padding:5px; border-radius:4px; border:1px solid #ddd; font-size:0.85rem;"><option value="all">顯示全部</option><option value="creator">🟣 創世神</option><option value="senior">高級管理者</option><option value="admin">管理者</option><option value="user">一般者</option><option value="pending">待審核</option></select>
+    </div>
+    <ul class="user-list" id="userListDisplay"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('userModal').style.display='none'">關閉</button></div></div></div>
+<div class="modal-overlay" id="statsModal"><div class="modal-card" style="width: 700px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📊 任務完成統整</h3><div class="stats-filter-row"><div><label style="font-size:0.8rem;">開始日期</label><input type="date" id="statsDateStart"></div><div><label style="font-size:0.8rem;">結束日期</label><input type="date" id="statsDateEnd"></div><div><label style="font-size:0.8rem;">檢索帳號</label><select id="statsUserSelect"><option value="all">-- 所有帳號 (總覽) --</option></select></div><div style="display:flex; align-items:flex-end;"><button class="btn btn-save" onclick="updateStats()">查詢</button></div></div><div class="stats-result-area" id="statsResultDisplay"></div><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('statsModal').style.display='none'">關閉</button></div></div></div>
 
 <script>
     // --- FIREBASE CONFIGURATION ---
@@ -350,7 +370,6 @@
     const db = firebase.firestore();
 
     const ORDERED_CATEGORIES = ["定序收件", "引子送件", "產前收件", "業務交辦事項", "NGS收件"];
-    // ⚠️ 您的 API 網址 (請確認後端已更新為讀取 building/floor 分開的版本)
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw9sCxtJ-rcRLdkwwGJgBCUCKxCFXujD4Ciq_fJxFqbly4Wldb-9nTSE5kqTst16hKg2Q/exec";
 
     let state = {
@@ -389,17 +408,17 @@
     db.collection('users').onSnapshot(snapshot => {
         state.users = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
         if(document.getElementById('userModal').style.display === 'flex') renderUserList();
+        if(document.getElementById('assignModal').style.display === 'flex') openAssignModal(assigningTaskId, state.tasks.find(t=>t.id===assigningTaskId)?.category);
         if (state.currentUser) {
             const me = state.users.find(u => u.username === state.currentUser.name);
             if (!me) { alert('您的帳號已被移除，即將強制登出。'); logout(); } 
             else if (state.currentUser.role !== me.role) { state.currentUser.role = me.role; localStorage.setItem('tt_current_user', JSON.stringify(state.currentUser)); updateUIForRole(); }
         }
     });
-    // Listen for Settings
     db.collection('settings').doc('ngs_sales').onSnapshot(doc => {
         if(doc.exists) state.salesOptions = doc.data().list || ['Jeff', '廖軒逵'];
         else { state.salesOptions = ['Jeff', '廖軒逵']; db.collection('settings').doc('ngs_sales').set({ list: state.salesOptions }); }
-        if(document.getElementById('salesSettingsModal').style.display === 'flex') openSalesSettings();
+        if(document.getElementById('settingsModal').style.display === 'flex' && document.getElementById('settingsTypeSelect').value === 'sales') openSalesSettings();
     });
     db.collection('settings').doc('assignment_rules').onSnapshot(doc => {
         state.assignmentRules = doc.exists ? doc.data() : {};
@@ -474,29 +493,28 @@
         const canConfig = ['creator','senior'].includes(state.currentUser.role);
         document.getElementById('adminPanelBtn').style.display = canManage ? 'block' : 'none';
         document.getElementById('statsPanelBtn').style.display = canConfig ? 'block' : 'none';
-        document.getElementById('salesSettingsBtn').style.display = canConfig ? 'block' : 'none';
-        document.getElementById('assignSettingsBtn').style.display = canConfig ? 'block' : 'none'; // Separate Btn
+        document.getElementById('settingsBtn').style.display = canConfig ? 'block' : 'none'; 
         document.getElementById('importBtn').style.display = canManage ? 'block' : 'none'; 
     }
 
-    /* --- SALES SETTINGS --- */
-    function openSalesSettings() {
-        const list = document.getElementById('salesOptionList'); list.innerHTML = '';
-        state.salesOptions.forEach((opt, index) => { const li = document.createElement('li'); li.className = 'setting-item'; li.innerHTML = `<span>${opt}</span><div><button class="btn-icon" onclick="editSalesOption(${index})">✏️</button><button class="btn-icon" style="color:red;" onclick="deleteSalesOption(${index})">🗑️</button></div>`; list.appendChild(li); });
-        document.getElementById('salesSettingsModal').style.display = 'flex';
+    /* --- SETTINGS HUB (Sales & Assignment) --- */
+    function openSettingsModal() { document.getElementById('settingsModal').style.display = 'flex'; document.getElementById('settingsTypeSelect').value = 'sales'; switchSettingsView(); }
+    function switchSettingsView() {
+        const type = document.getElementById('settingsTypeSelect').value;
+        document.getElementById('viewSalesSettings').style.display = type === 'sales' ? 'block' : 'none';
+        document.getElementById('viewAssignSettings').style.display = type === 'assign' ? 'block' : 'none';
+        if(type === 'sales') openSalesSettings(); if(type === 'assign') openAssignmentSettings();
     }
+    function openSalesSettings() { const list = document.getElementById('salesOptionList'); list.innerHTML = ''; state.salesOptions.forEach((opt, index) => { const li = document.createElement('li'); li.className = 'setting-item'; li.innerHTML = `<span>${opt}</span><div><button class="btn-icon" onclick="editSalesOption(${index})">✏️</button><button class="btn-icon" style="color:red;" onclick="deleteSalesOption(${index})">🗑️</button></div>`; list.appendChild(li); }); }
     function saveSalesSettings() { db.collection('settings').doc('ngs_sales').update({ list: state.salesOptions }); }
     function addSalesOption() { const val = document.getElementById('newSalesName').value.trim(); if(val) { state.salesOptions.push(val); saveSalesSettings(); document.getElementById('newSalesName').value = ''; } }
     function deleteSalesOption(index) { if(confirm('確定刪除？')) { state.salesOptions.splice(index, 1); saveSalesSettings(); } }
     function editSalesOption(index) { const newVal = prompt("修改:", state.salesOptions[index]); if(newVal && newVal.trim()) { state.salesOptions[index] = newVal.trim(); saveSalesSettings(); } }
     function populateSalesDropdowns() { const optsHtml = state.salesOptions.map(s => `<option value="${s}">${s}</option>`).join(''); const s1 = document.getElementById('ngsSales'); const s2 = document.getElementById('ngsQcSales'); if(s1) s1.innerHTML = optsHtml; if(s2) s2.innerHTML = optsHtml; }
-
-    /* --- ASSIGNMENT SETTINGS (Standalone) --- */
-    function openAssignSettingsModal() {
+    function openAssignmentSettings() {
         const container = document.getElementById('assignRulesContainer'); container.innerHTML = '';
         const roleOrder = { 'creator': 0, 'senior': 1, 'admin': 2, 'user': 3 };
         const approvedUsers = state.users.filter(u => u.isApproved).sort((a,b) => (roleOrder[a.role]||4) - (roleOrder[b.role]||4));
-        
         ORDERED_CATEGORIES.forEach(cat => {
             const wrapper = document.createElement('div'); wrapper.className = 'assign-section';
             const currentAllowed = state.assignmentRules[cat] || [];
@@ -509,7 +527,6 @@
             wrapper.innerHTML = `<div class="assign-sec-title">${cat}</div><div class="assign-checkbox-group">${checkboxes}</div>`;
             container.appendChild(wrapper);
         });
-        document.getElementById('assignSettingsModal').style.display = 'flex';
     }
     function saveAssignmentRules() {
         const newRules = {};
@@ -558,7 +575,7 @@
         alert(`匯入完成！成功: ${successCount}`); document.getElementById('importModal').style.display = 'none';
     }
 
-    /* --- STATS LOGIC (Fixed) --- */
+    /* --- STATS LOGIC --- */
     function openStatsModal() {
         const modal = document.getElementById('statsModal'); 
         const userSelect = document.getElementById('statsUserSelect'); 
@@ -606,10 +623,16 @@
         }
     }
 
-    /* --- USER MANAGEMENT (Fixed) --- */
+    /* --- USER MANAGEMENT --- */
     function openUserModal() {
+        renderUserList(); // Call render function
+        document.getElementById('userModal').style.display = 'flex';
+    }
+
+    function renderUserList() {
         const list = document.getElementById('userListDisplay'); 
-        const myRole = state.currentUser.role; 
+        if(!list) return; // Safety check
+        const myRole = state.currentUser ? state.currentUser.role : 'user'; 
         const filterRole = document.getElementById('userFilterSelect') ? document.getElementById('userFilterSelect').value : 'all'; 
         
         list.innerHTML = '';
@@ -617,7 +640,8 @@
         // Sorting Logic: Creator > Senior > Admin > User > Pending
         const roleOrder = { 'creator': 0, 'senior': 1, 'admin': 2, 'user': 3, 'pending': 4 };
         
-        let displayUsers = state.users.sort((a,b) => {
+        let displayUsers = [...state.users]; // Copy array to sort
+        displayUsers.sort((a,b) => {
             const rA = a.isApproved ? (roleOrder[a.role]||3) : 4;
             const rB = b.isApproved ? (roleOrder[b.role]||3) : 4;
             return rA - rB;
@@ -665,18 +689,14 @@
             li.innerHTML = `<div class="user-header"><div><span class="user-name">${user.username}</span><span class="user-role-badge ${badgeClass}">${badgeText}</span></div></div>${controlsHtml}`;
             list.appendChild(li);
         });
-        document.getElementById('userModal').style.display = 'flex';
     }
-    
-    // Alias function for 'renderUserList' as some HTML might call it
-    const renderUserList = openUserModal;
 
     function togglePasswordVisibility(id) { const input = document.getElementById(id); input.type = input.type === "password" ? "text" : "password"; }
     function updateUser(docId) {
         const role = document.getElementById(`role_${docId}`).value; const note = document.getElementById(`note_${docId}`).value; const nick = document.getElementById(`nick_${docId}`).value;
         db.collection('users').doc(docId).update({ role: role, remarks: note, nickname: nick, isApproved: true }).then(() => alert('資料已更新'));
     }
-    function deleteUser(docId) { if(confirm('確定要刪除？')) db.collection('users').doc(docId).delete().then(() => openUserModal()); }
+    function deleteUser(docId) { if(confirm('確定要刪除？')) db.collection('users').doc(docId).delete().then(() => renderUserList()); }
     function approveUserSimple(docId) { db.collection('users').doc(docId).update({ isApproved: true }).then(() => alert('已核准')); }
 
     /* --- TASKS RENDER --- */
@@ -751,9 +771,8 @@
         }
         let actionBtn = task.isDeleted ? `<button class="btn-icon btn-restore" onclick="restoreTask('${task.id}')">↩ 還原</button>` : `<button class="btn-icon btn-delete" onclick="deleteTask('${task.id}')">×</button>`;
         let rightButtonsHtml = '';
-        const canNotify = ['creator', 'senior', 'admin'].includes(state.currentUser.role);
         if (!task.isDeleted) rightButtonsHtml += `<button onclick="openAssignModal('${task.id}', '${task.category}')" class="btn-icon btn-assign" title="指派任務">👤</button>`;
-        if (!task.isDeleted) { // Copy Button for everyone
+        if (!task.isDeleted) {
             let lineText = '';
             if (task.category === 'NGS收件' && task.details) lineText = `【NGS案件通知】\n單位: ${task.details.unit}\n主持人: ${task.details.pi}\n項目: ${task.details.needs === '萃取' ? task.details.expType : task.details.nucleicType}\n負責業務: ${task.details.sales}`;
             else { const plainTitle = task.title.replace(/<[^>]*>/g, ''); lineText = `【任務通知】\n${plainTitle}`; }
