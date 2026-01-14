@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="robots" content="noindex, nofollow">
-    <title>中區收送件進度追蹤系統 (Fix v44)</title>
+    <title>中區收送件進度追蹤系統 (v45 Final Fix)</title>
 
     <script src="https://unpkg.com/firebase@9.22.2/firebase-app-compat.js"></script>
     <script src="https://unpkg.com/firebase@9.22.2/firebase-firestore-compat.js"></script>
@@ -108,20 +108,21 @@
         .task-item.completed-item .task-title { color: #9ca3af; text-decoration: line-through; }
         .ngs-badge { display: inline-block; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc; background: #fdfdfd; margin-right: 5px; margin-top: 3px; color: #555; }
         
-        /* === ENHANCED ASSIGN BADGE === */
+        /* === ENHANCED ASSIGN BADGE (LARGE & VISIBLE) === */
         .assign-badge { 
             display: inline-block; 
-            font-size: 0.85rem; 
+            font-size: 0.95rem; /* Larger font */
             background: var(--assign-bg); 
             color: white; 
-            padding: 3px 10px; 
-            border-radius: 20px; 
-            margin-left: 10px; 
+            padding: 4px 10px; 
+            border-radius: 6px; 
+            margin-left: 8px; 
             vertical-align: middle; 
             font-weight: 700; 
-            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.4);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             white-space: nowrap;
             letter-spacing: 0.5px;
+            border: 1px solid #3730a3;
         }
 
         .action-area { display: flex; flex-direction: column; align-items: center; gap: 8px; }
@@ -401,7 +402,10 @@
     });
     db.collection('users').onSnapshot(snapshot => {
         state.users = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
+        // If modals are open, refresh them
         if(document.getElementById('userModal').style.display === 'flex') openUserModal();
+        if(document.getElementById('assignModal').style.display === 'flex') openAssignModal(assigningTaskId, state.tasks.find(t=>t.id===assigningTaskId)?.category);
+        
         if (state.currentUser) {
             const me = state.users.find(u => u.username === state.currentUser.name);
             if (!me) { alert('您的帳號已被移除，即將強制登出。'); logout(); } 
@@ -490,7 +494,7 @@
         document.getElementById('importBtn').style.display = canManage ? 'block' : 'none'; 
     }
 
-    /* --- SETTINGS HUB --- */
+    /* --- SETTINGS HUB (Sales & Assignment) --- */
     function openSettingsModal() { document.getElementById('settingsModal').style.display = 'flex'; document.getElementById('settingsTypeSelect').value = 'sales'; switchSettingsView(); }
     function switchSettingsView() {
         const type = document.getElementById('settingsTypeSelect').value;
@@ -504,7 +508,6 @@
     function deleteSalesOption(index) { if(confirm('確定刪除？')) { state.salesOptions.splice(index, 1); saveSalesSettings(); } }
     function editSalesOption(index) { const newVal = prompt("修改:", state.salesOptions[index]); if(newVal && newVal.trim()) { state.salesOptions[index] = newVal.trim(); saveSalesSettings(); } }
     function populateSalesDropdowns() { const optsHtml = state.salesOptions.map(s => `<option value="${s}">${s}</option>`).join(''); const s1 = document.getElementById('ngsSales'); const s2 = document.getElementById('ngsQcSales'); if(s1) s1.innerHTML = optsHtml; if(s2) s2.innerHTML = optsHtml; }
-    
     function openAssignmentSettings() {
         const container = document.getElementById('assignRulesContainer'); container.innerHTML = '';
         const roleOrder = { 'creator': 0, 'senior': 1, 'admin': 2, 'user': 3 };
@@ -573,6 +576,7 @@
     /* --- TASKS RENDER --- */
     function renderTasks() {
         const container = document.getElementById('taskListContainer'); container.innerHTML = '';
+        
         const overdueTasks = state.tasks.filter(t => t.date < state.currentDate && !t.completed && !t.isDeleted);
         if (overdueTasks.length > 0) {
             const group = document.createElement('div'); group.className = 'category-group overdue-section';
@@ -581,6 +585,7 @@
             overdueTasks.forEach(t => group.appendChild(createTaskElement(t, true)));
             container.appendChild(group);
         }
+
         const dayTasks = state.tasks.filter(t => t.date === state.currentDate);
         const totalActive = dayTasks.filter(t => !t.isDeleted).length; const totalDone = dayTasks.filter(t => !t.isDeleted && t.completed).length;
         const totalPct = totalActive===0?0:Math.round((totalDone/totalActive)*100);
