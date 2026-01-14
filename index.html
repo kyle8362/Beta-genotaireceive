@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="robots" content="noindex, nofollow">
-    <title>中區收送件進度追蹤系統 (v41)</title>
+    <title>中區收送件進度追蹤系統 (Fix v42)</title>
 
     <script src="https://unpkg.com/firebase@9.22.2/firebase-app-compat.js"></script>
     <script src="https://unpkg.com/firebase@9.22.2/firebase-firestore-compat.js"></script>
@@ -15,6 +15,7 @@
             --sidebar-bg: #ffffff; --text-main: #111827; --text-light: #6b7280;
             --border: #e5e7eb; --danger: #ef4444; --success: #10b981; --warning: #f59e0b;
             --genesis: #7e22ce; --line-green: #06c755; --blue: #2563eb;
+            --assign-bg: #6366f1; /* Indigo for assignment */
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: var(--bg); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; }
@@ -107,7 +108,20 @@
         .task-item.completed-item .task-title { color: #9ca3af; text-decoration: line-through; }
         .ngs-badge { display: inline-block; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc; background: #fdfdfd; margin-right: 5px; margin-top: 3px; color: #555; }
         
-        .assign-badge { display: inline-block; font-size: 0.75rem; background: #f3f4f6; color: #4b5563; padding: 2px 8px; border-radius: 12px; margin-left: 6px; vertical-align: middle; border: 1px solid #e5e7eb; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        /* IMPROVED ASSIGN BADGE */
+        .assign-badge { 
+            display: inline-block; 
+            font-size: 0.85rem; 
+            background: var(--assign-bg); 
+            color: white; 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            margin-left: 8px; 
+            vertical-align: middle; 
+            font-weight: 600; 
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+            white-space: nowrap;
+        }
 
         .action-area { display: flex; flex-direction: column; align-items: center; gap: 8px; }
         .btn-icon { background: none; border: 1px solid transparent; cursor: pointer; font-size: 1.2rem; padding: 2px 6px; color: #9ca3af; border-radius: 4px; }
@@ -116,7 +130,7 @@
         .btn-restore { color: var(--success); font-size: 1rem; }
         .btn-line:hover { color: var(--line-green); }
         .btn-copy:hover { color: var(--primary); }
-        .btn-assign:hover { color: #3b82f6; }
+        .btn-assign:hover { color: var(--assign-bg); background: #e0e7ff; }
         .fab { position: fixed; bottom: 2rem; right: 2rem; width: 60px; height: 60px; background: var(--primary); color: white; border-radius: 50%; font-size: 32px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: transform 0.2s; z-index: 800; }
         .fab:hover { transform: scale(1.05); background: #0d9488; }
 
@@ -134,7 +148,7 @@
         .cust-update { font-size: 0.75rem; color: #9ca3af; text-align: right; margin-top: auto; padding-top: 10px; border-top: 1px dashed #eee; }
         .loading-spinner { text-align: center; padding: 20px; font-size: 1.2rem; color: var(--primary); }
 
-        /* Modals */
+        /* Modals & Others */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2100; justify-content: center; align-items: center; }
         .modal-card { background: white; padding: 2rem; border-radius: 12px; width: 500px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); max-height: 90vh; overflow-y: auto; }
         .editor-toolbar { display: flex; gap: 5px; margin-bottom: 5px; flex-wrap: wrap; padding: 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-bottom: none; border-radius: 6px 6px 0 0; align-items: center; }
@@ -393,7 +407,6 @@
             else if (state.currentUser.role !== me.role) { state.currentUser.role = me.role; localStorage.setItem('tt_current_user', JSON.stringify(state.currentUser)); updateUIForRole(); }
         }
     });
-    // Listen for Sales Options & Assignment Rules
     db.collection('settings').doc('ngs_sales').onSnapshot(doc => {
         if(doc.exists) state.salesOptions = doc.data().list || ['Jeff', '廖軒逵'];
         else { state.salesOptions = ['Jeff', '廖軒逵']; db.collection('settings').doc('ngs_sales').set({ list: state.salesOptions }); }
@@ -472,14 +485,14 @@
         const canConfig = ['creator','senior'].includes(state.currentUser.role);
         document.getElementById('adminPanelBtn').style.display = canManage ? 'block' : 'none';
         document.getElementById('statsPanelBtn').style.display = canConfig ? 'block' : 'none';
-        document.getElementById('settingsBtn').style.display = canConfig ? 'block' : 'none'; // Fixed ID
-        document.getElementById('importBtn').style.display = canManage ? 'block' : 'none'; // Fixed ID
+        document.getElementById('settingsBtn').style.display = canConfig ? 'block' : 'none';
+        document.getElementById('importBtn').style.display = canManage ? 'block' : 'none';
     }
 
     /* --- SETTINGS HUB (Sales & Assignment) --- */
     function openSettingsModal() {
         document.getElementById('settingsModal').style.display = 'flex';
-        document.getElementById('settingsTypeSelect').value = 'sales'; // Default
+        document.getElementById('settingsTypeSelect').value = 'sales';
         switchSettingsView();
     }
     function switchSettingsView() {
@@ -504,7 +517,9 @@
     // Assignment Settings Logic
     function openAssignmentSettings() {
         const container = document.getElementById('assignRulesContainer'); container.innerHTML = '';
-        const approvedUsers = state.users.filter(u => u.isApproved);
+        // Sort users by role order for better UI
+        const roleOrder = { 'creator': 0, 'senior': 1, 'admin': 2, 'user': 3 };
+        const approvedUsers = state.users.filter(u => u.isApproved).sort((a,b) => (roleOrder[a.role]||4) - (roleOrder[b.role]||4));
         
         ORDERED_CATEGORIES.forEach(cat => {
             const wrapper = document.createElement('div'); wrapper.className = 'assign-section';
@@ -537,14 +552,12 @@
         assigningTaskId = taskId;
         const list = document.getElementById('assignUserList'); list.innerHTML = '';
         
-        // Logic: specific allowed users > or all approved users if no rule
         const allowedUsers = state.assignmentRules[category] || [];
         let targetUsers = [];
         
         if (allowedUsers.length > 0) {
             targetUsers = state.users.filter(u => allowedUsers.includes(u.username));
         } else {
-            // Fallback: Show all approved users if no specific rule set
             targetUsers = state.users.filter(u => u.isApproved);
         }
 
@@ -616,7 +629,7 @@
             container.appendChild(group);
         });
 
-        // Completed
+        // Completed (Grouped & Collapsible)
         const completedTasks = dayTasks.filter(t => t.completed && !t.isDeleted);
         if (completedTasks.length > 0) {
             const compSection = document.createElement('div'); compSection.className = 'category-group completed-section';
@@ -635,7 +648,7 @@
             container.appendChild(compSection);
         }
 
-        // Deleted
+        // Deleted (Grouped & Collapsible)
         const deletedTasks = dayTasks.filter(t => t.isDeleted);
         if (deletedTasks.length > 0) {
             const delSection = document.createElement('div'); delSection.className = 'category-group deleted-section';
