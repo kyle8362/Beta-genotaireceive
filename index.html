@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="robots" content="noindex, nofollow">
-    <title>中區收送件進度追蹤系統 (Fix v40)</title>
+    <title>中區收送件進度追蹤系統 (v41)</title>
 
     <script src="https://unpkg.com/firebase@9.22.2/firebase-app-compat.js"></script>
     <script src="https://unpkg.com/firebase@9.22.2/firebase-firestore-compat.js"></script>
@@ -37,6 +37,7 @@
         .avatar { width: 40px; height: 40px; background: var(--primary); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; flex-shrink: 0; }
         .logout-link { font-size: 0.8rem; color: var(--danger); cursor: pointer; margin-top: 2px;}
         
+        /* Sidebar Buttons */
         .sidebar-btn { padding: 10px; border-radius: 6px; text-align: center; cursor: pointer; font-weight: 600; margin-bottom: 10px; display: block; font-size: 0.9rem; border: 1px solid transparent; width: 100%; }
         .sidebar-btn:hover { opacity: 0.9; }
         .btn-nav-active { background: var(--primary); color: white; border-color: var(--primary); }
@@ -105,8 +106,9 @@
         .completed-info { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; display: inline-block; font-weight: 500; }
         .task-item.completed-item .task-title { color: #9ca3af; text-decoration: line-through; }
         .ngs-badge { display: inline-block; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc; background: #fdfdfd; margin-right: 5px; margin-top: 3px; color: #555; }
-        .assign-badge { display: inline-block; font-size: 0.75rem; background: #f3f4f6; color: #4b5563; padding: 2px 6px; border-radius: 12px; margin-left: 5px; vertical-align: middle; border: 1px solid #e5e7eb; font-weight: 600; }
         
+        .assign-badge { display: inline-block; font-size: 0.75rem; background: #f3f4f6; color: #4b5563; padding: 2px 8px; border-radius: 12px; margin-left: 6px; vertical-align: middle; border: 1px solid #e5e7eb; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
         .action-area { display: flex; flex-direction: column; align-items: center; gap: 8px; }
         .btn-icon { background: none; border: 1px solid transparent; cursor: pointer; font-size: 1.2rem; padding: 2px 6px; color: #9ca3af; border-radius: 4px; }
         .btn-icon:hover { background-color: #f3f4f6; color: var(--text-main); border-color: #ddd; }
@@ -132,7 +134,7 @@
         .cust-update { font-size: 0.75rem; color: #9ca3af; text-align: right; margin-top: auto; padding-top: 10px; border-top: 1px dashed #eee; }
         .loading-spinner { text-align: center; padding: 20px; font-size: 1.2rem; color: var(--primary); }
 
-        /* Modals & Others */
+        /* Modals */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2100; justify-content: center; align-items: center; }
         .modal-card { background: white; padding: 2rem; border-radius: 12px; width: 500px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); max-height: 90vh; overflow-y: auto; }
         .editor-toolbar { display: flex; gap: 5px; margin-bottom: 5px; flex-wrap: wrap; padding: 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-bottom: none; border-radius: 6px 6px 0 0; align-items: center; }
@@ -158,10 +160,10 @@
         .btn-cancel { background: #f3f4f6; color: #4b5563; }
         .btn-save { background: var(--primary); color: white; }
 
-        /* Updated User Settings & Assignment Modal */
+        /* Beautiful User Settings & Assign */
         .user-list, .settings-list, .assign-list { list-style: none; padding: 0; margin: 0; }
         .user-item { display: flex; flex-direction: column; padding: 15px; border: 1px solid #eee; background: white; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: 0.2s; }
-        .user-item:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .user-item:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.05); transform: translateY(-1px); }
         .user-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .user-name { font-weight: 700; font-size: 1.05rem; color: #1f2937; }
         .user-role-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; margin-left: 8px; border: 1px solid #ddd; font-weight: 500; }
@@ -347,7 +349,6 @@
     const db = firebase.firestore();
 
     const ORDERED_CATEGORIES = ["定序收件", "引子送件", "產前收件", "業務交辦事項", "NGS收件"];
-    // ⚠️ 您的 API 網址 (請確認後端已更新為讀取 building/floor 分開的版本)
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw9sCxtJ-rcRLdkwwGJgBCUCKxCFXujD4Ciq_fJxFqbly4Wldb-9nTSE5kqTst16hKg2Q/exec";
 
     let state = {
@@ -364,20 +365,15 @@
     /* --- TAB SWITCHING --- */
     function switchTab(tab) {
         state.activeTab = tab;
-        document.getElementById('taskView').classList.remove('active');
-        document.getElementById('customerView').classList.remove('active');
-        
+        document.getElementById('taskView').classList.remove('active'); document.getElementById('customerView').classList.remove('active');
         document.getElementById('btnTabTasks').className = `sidebar-btn ${tab==='tasks'?'btn-nav-active':'btn-nav-inactive'}`;
         document.getElementById('btnTabCustomers').className = `sidebar-btn ${tab==='customers'?'btn-nav-active':'btn-nav-inactive'}`;
-        
         if (tab === 'tasks') {
             document.getElementById('taskView').classList.add('active');
-            document.getElementById('taskSearchSection').style.display = 'block';
-            document.getElementById('taskDateSection').style.display = 'block';
+            document.getElementById('taskSearchSection').style.display = 'block'; document.getElementById('taskDateSection').style.display = 'block';
         } else {
             document.getElementById('customerView').classList.add('active');
-            document.getElementById('taskSearchSection').style.display = 'none';
-            document.getElementById('taskDateSection').style.display = 'none';
+            document.getElementById('taskSearchSection').style.display = 'none'; document.getElementById('taskDateSection').style.display = 'none';
             if(state.customers.length === 0) fetchCustomers();
         }
         if(window.innerWidth <= 768) toggleSidebar();
@@ -397,7 +393,7 @@
             else if (state.currentUser.role !== me.role) { state.currentUser.role = me.role; localStorage.setItem('tt_current_user', JSON.stringify(state.currentUser)); updateUIForRole(); }
         }
     });
-    // Listen for Settings
+    // Listen for Sales Options & Assignment Rules
     db.collection('settings').doc('ngs_sales').onSnapshot(doc => {
         if(doc.exists) state.salesOptions = doc.data().list || ['Jeff', '廖軒逵'];
         else { state.salesOptions = ['Jeff', '廖軒逵']; db.collection('settings').doc('ngs_sales').set({ list: state.salesOptions }); }
@@ -410,58 +406,26 @@
     /* --- CUSTOMER SEARCH --- */
     async function fetchCustomers() {
         document.getElementById('custLoading').style.display = 'block';
-        try {
-            const res = await fetch(GAS_API_URL);
-            const data = await res.json();
-            state.customers = data;
-        } catch (e) {
-            console.error("API Error:", e);
-            alert("資料讀取失敗，請確認 API 網址與權限設定 (Anyone)。\n按 F12 看詳細錯誤。");
-        } finally {
-            document.getElementById('custLoading').style.display = 'none';
-        }
+        try { const res = await fetch(GAS_API_URL); const data = await res.json(); state.customers = data; } 
+        catch (e) { console.error("API Error:", e); alert("資料讀取失敗"); } 
+        finally { document.getElementById('custLoading').style.display = 'none'; }
     }
     function renderCustomers(data) {
         const container = document.getElementById('customerList'); container.innerHTML = '';
         if(data.length === 0) { container.innerHTML = '<div style="color:#666; text-align:center;">查無資料</div>'; return; }
-        
         data.forEach(cust => {
             const div = document.createElement('div'); div.className = 'cust-card';
-            // Mapping from GAS (v36 updated structure)
-            const unit = cust.unit||'未分類';
-            const name = cust.name||'無名稱';
-            const building = cust.building||'';
-            const floor = cust.floor||'';
-            const contact = cust.contact||'';
-            const phone = cust.phone||'';
-            const note = cust.note||'';
-            const update = cust.update||'';
-
-            // Format: Building - Floor or just one if the other missing
-            let locStr = '';
-            if(building && floor) locStr = `${building} - ${floor}`;
-            else if(building) locStr = building;
-            else if(floor) locStr = floor;
-
-            let content = `
-                <div class="cust-title-row">${unit} - ${name}</div>
-                ${locStr ? `<div class="cust-row">📍 ${locStr}</div>` : ''}
-                ${contact ? `<div class="cust-row">👤 ${contact}</div>` : ''}
-                ${phone ? `<div class="cust-row">📞 ${phone}</div>` : ''}
-                ${note ? `<div class="cust-row note">📝 ${note}</div>` : ''}
-                ${update ? `<div class="cust-update">最後更新: ${update}</div>` : ''}
-            `;
-            div.innerHTML = content;
+            const name = cust.name||'無名稱'; const unit = cust.unit||'未分類';
+            const building = cust.building||''; const floor = cust.floor||'';
+            let locStr = ''; if(building && floor) locStr = `${building} - ${floor}`; else if(building) locStr = building; else if(floor) locStr = floor;
+            const contact = cust.contact||''; const phone = cust.phone||''; const note = cust.note||''; const update = cust.update||'';
+            div.innerHTML = `<div class="cust-title-row">${unit} - ${name}</div>${locStr?`<div class="cust-row">📍 ${locStr}</div>`:''}${contact?`<div class="cust-row">👤 ${contact}</div>`:''}${phone?`<div class="cust-row">📞 ${phone}</div>`:''}${note?`<div class="cust-row note">📝 ${note}</div>`:''}${update?`<div class="cust-update">最後更新: ${update}</div>`:''}`;
             container.appendChild(div);
         });
     }
     function handleCustomerSearch() {
         const key = document.getElementById('custSearchInput').value.trim().toLowerCase();
-        const container = document.getElementById('customerList');
-        if(!key) { 
-            container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#9ca3af; margin-top:50px;">請輸入關鍵字開始查詢</div>'; 
-            return; 
-        }
+        if(!key) { document.getElementById('customerList').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#999;margin-top:50px;">請輸入關鍵字開始查詢</div>'; return; }
         const filtered = state.customers.filter(c => JSON.stringify(c).toLowerCase().includes(key));
         renderCustomers(filtered);
     }
@@ -497,10 +461,7 @@
     }
     function loginSuccess(username, role) { state.currentUser = { name: username, role: role }; localStorage.setItem('tt_current_user', JSON.stringify(state.currentUser)); initApp(); }
     function logout() { localStorage.removeItem('tt_current_user'); location.reload(); }
-    function initApp() {
-        document.getElementById('auth-screen').style.display = 'none'; document.getElementById('app-screen').style.display = 'flex';
-        updateUIForRole(); changeDate(state.currentDate, false);
-    }
+    function initApp() { document.getElementById('auth-screen').style.display = 'none'; document.getElementById('app-screen').style.display = 'flex'; updateUIForRole(); changeDate(state.currentDate, false); }
     function updateUIForRole() {
         if(!state.currentUser) return;
         let roleName = '';
@@ -518,7 +479,7 @@
     /* --- SETTINGS HUB (Sales & Assignment) --- */
     function openSettingsModal() {
         document.getElementById('settingsModal').style.display = 'flex';
-        document.getElementById('settingsTypeSelect').value = 'sales';
+        document.getElementById('settingsTypeSelect').value = 'sales'; // Default
         switchSettingsView();
     }
     function switchSettingsView() {
@@ -543,9 +504,7 @@
     // Assignment Settings Logic
     function openAssignmentSettings() {
         const container = document.getElementById('assignRulesContainer'); container.innerHTML = '';
-        // Sort users by role order for better UI
-        const roleOrder = { 'creator': 0, 'senior': 1, 'admin': 2, 'user': 3 };
-        const approvedUsers = state.users.filter(u => u.isApproved).sort((a,b) => (roleOrder[a.role]||4) - (roleOrder[b.role]||4));
+        const approvedUsers = state.users.filter(u => u.isApproved);
         
         ORDERED_CATEGORIES.forEach(cat => {
             const wrapper = document.createElement('div'); wrapper.className = 'assign-section';
@@ -578,13 +537,14 @@
         assigningTaskId = taskId;
         const list = document.getElementById('assignUserList'); list.innerHTML = '';
         
+        // Logic: specific allowed users > or all approved users if no rule
         const allowedUsers = state.assignmentRules[category] || [];
         let targetUsers = [];
         
-        // If rules exist, use them. If not, fallback to all approved.
         if (allowedUsers.length > 0) {
             targetUsers = state.users.filter(u => allowedUsers.includes(u.username));
         } else {
+            // Fallback: Show all approved users if no specific rule set
             targetUsers = state.users.filter(u => u.isApproved);
         }
 
@@ -622,8 +582,147 @@
         alert(`匯入完成！成功: ${successCount}`); document.getElementById('importModal').style.display = 'none';
     }
 
-    /* --- OTHER HELPERS --- */
-    // ... (Keep existing Helper Functions: toggleTask, getDropdownOrInput, saveTask, deleteTask, restoreTask, updateTaskDb, changeDate, renderHistory, openModal, closeModal, showHistory, etc.)
+    /* --- TASKS RENDER --- */
+    function renderTasks() {
+        const container = document.getElementById('taskListContainer'); container.innerHTML = '';
+        
+        const overdueTasks = state.tasks.filter(t => t.date < state.currentDate && !t.completed && !t.isDeleted);
+        if (overdueTasks.length > 0) {
+            const group = document.createElement('div'); group.className = 'category-group overdue-section';
+            group.innerHTML = `<div class="category-header-row"><div class="cat-title">🚨 先前未完成 <span class="badge-count" style="background:#fee2e2; color:#b91c1c;">${overdueTasks.length}</span></div></div>`;
+            overdueTasks.sort((a,b)=>new Date(a.date)-new Date(b.date));
+            overdueTasks.forEach(t => group.appendChild(createTaskElement(t, true)));
+            container.appendChild(group);
+        }
+
+        const dayTasks = state.tasks.filter(t => t.date === state.currentDate);
+        const totalActive = dayTasks.filter(t => !t.isDeleted).length;
+        const totalDone = dayTasks.filter(t => !t.isDeleted && t.completed).length;
+        const totalPct = totalActive===0?0:Math.round((totalDone/totalActive)*100);
+        document.getElementById('overallProgressText').innerText = `${totalDone}/${totalActive} (${totalPct}%)`;
+        document.getElementById('overallProgressBar').style.width = `${totalPct}%`;
+
+        if (dayTasks.length === 0 && overdueTasks.length === 0) { container.innerHTML += `<div style="text-align:center; color:#9ca3b8; margin-top:60px;">本日無任何案件或任務</div>`; return; }
+
+        ORDERED_CATEGORIES.forEach(cat => {
+            const all = dayTasks.filter(t => t.category === cat && !t.isDeleted);
+            const active = all.filter(t => !t.completed);
+            const pct = all.length===0?0:Math.round((all.filter(t=>t.completed).length/all.length)*100);
+            
+            const group = document.createElement('div'); group.className = 'category-group';
+            group.innerHTML = `<div class="category-header-row"><div class="cat-title">${cat} <span class="badge-count">${active.length}</span></div><div style="font-size:0.8rem; color:#6b7280; font-weight:600;">${pct}%</div></div><div class="cat-progress-track"><div class="cat-progress-fill" style="width: ${pct}%"></div></div>`;
+            if (active.length > 0) active.forEach(t => group.appendChild(createTaskElement(t)));
+            else group.innerHTML += `<div style="font-size:0.9rem; color:#d1d5db; padding-left:10px; margin-bottom:10px;">無待辦事項</div>`;
+            container.appendChild(group);
+        });
+
+        // Completed
+        const completedTasks = dayTasks.filter(t => t.completed && !t.isDeleted);
+        if (completedTasks.length > 0) {
+            const compSection = document.createElement('div'); compSection.className = 'category-group completed-section';
+            compSection.innerHTML = `<div class="category-header-row"><div class="cat-title">✅ 已完成項目 (總覽) <span class="badge-count">${completedTasks.length}</span></div></div>`;
+            ORDERED_CATEGORIES.forEach(cat => {
+                const subTasks = completedTasks.filter(t => t.category === cat);
+                if (subTasks.length > 0) {
+                    const details = document.createElement('details');
+                    details.innerHTML = `<summary>${cat} (${subTasks.length})</summary><div class="details-content"></div>`;
+                    const content = details.querySelector('.details-content');
+                    subTasks.sort((a,b)=>new Date(a.completedAt)-new Date(b.completedAt));
+                    subTasks.forEach(t => content.appendChild(createTaskElement(t)));
+                    compSection.appendChild(details);
+                }
+            });
+            container.appendChild(compSection);
+        }
+
+        // Deleted
+        const deletedTasks = dayTasks.filter(t => t.isDeleted);
+        if (deletedTasks.length > 0) {
+            const delSection = document.createElement('div'); delSection.className = 'category-group deleted-section';
+            delSection.innerHTML = `<div class="category-header-row"><div class="cat-title">🗑️ 被刪除項目 (總覽) <span class="badge-count">${deletedTasks.length}</span></div></div>`;
+            ORDERED_CATEGORIES.forEach(cat => {
+                const subTasks = deletedTasks.filter(t => t.category === cat);
+                if (subTasks.length > 0) {
+                    const details = document.createElement('details');
+                    details.innerHTML = `<summary>${cat} (${subTasks.length})</summary><div class="details-content"></div>`;
+                    const content = details.querySelector('.details-content');
+                    subTasks.forEach(t => content.appendChild(createTaskElement(t)));
+                    delSection.appendChild(details);
+                }
+            });
+            container.appendChild(delSection);
+        }
+    }
+
+    function createTaskElement(task, isOverdue = false) {
+        const div = document.createElement('div');
+        const overdueClass = isOverdue ? 'overdue-item' : '';
+        div.className = `task-item ${overdueClass} ${task.completed ? 'completed-item' : ''} ${task.isDeleted ? 'deleted-item' : ''}`;
+        div.setAttribute('data-cat', task.category);
+        
+        let checkboxHtml = task.isDeleted ? '' : `<div class="task-checkbox" onclick="toggleTask('${task.id}')"></div>`;
+        let metaHtml = '';
+        if (task.completed && !task.isDeleted) {
+            const d = new Date(task.completedAt);
+            const userDisp = getUserDisplayName(task.completedBy);
+            metaHtml = `<div class="task-meta">原始分類: ${task.category}<br><span class="completed-info">${userDisp} 於 ${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')} 完成</span></div>`;
+        } else if (isOverdue) {
+            metaHtml = `<div class="task-meta"><span class="task-overdue-date">建立於: ${task.date}</span></div>`;
+        }
+
+        let ngsInfoHtml = '';
+        if (task.details) {
+            ngsInfoHtml += `<div style="margin-top:5px; padding:5px; background:#f0fdfa; border-radius:4px; font-size:0.8rem; color:#0f766e;"><div><span class="ngs-badge">單位</span> ${task.details.unit}</div><div><span class="ngs-badge">主持人</span> ${task.details.pi}</div><div><span class="ngs-badge">需求</span> ${task.details.needs}</div>`;
+            if(task.details.needs === '萃取') {
+                ngsInfoHtml += `<div><span class="ngs-badge">種類</span> ${task.details.sampleType} | 數量:${task.details.sampleCount}</div><div><span class="ngs-badge">後續</span> ${task.details.expType} | 平台:${task.details.platform}</div><div><span class="ngs-badge">業務</span> ${task.details.sales} | 歸還:${task.details.returnBack} | ${task.details.temp}</div>`;
+            } else if (task.details.needs === 'QC') {
+                ngsInfoHtml += `<div><span class="ngs-badge">核酸</span> ${task.details.nucleicType} | 數量:${task.details.sampleCount}</div><div><span class="ngs-badge">後續</span> ${task.details.expType} | 平台:${task.details.platform}</div><div><span class="ngs-badge">業務</span> ${task.details.sales} | 歸還:${task.details.returnBack} | ${task.details.temp}</div>`;
+            }
+            ngsInfoHtml += `</div>`;
+        }
+        
+        let actionBtn = task.isDeleted 
+            ? `<button class="btn-icon btn-restore" onclick="restoreTask('${task.id}')">↩ 還原</button>`
+            : `<button class="btn-icon btn-delete" onclick="deleteTask('${task.id}')">×</button>`;
+            
+        let rightButtonsHtml = '';
+        const canNotify = ['creator', 'senior', 'admin'].includes(state.currentUser.role);
+        
+        if (!task.isDeleted) {
+            rightButtonsHtml += `<button onclick="openAssignModal('${task.id}', '${task.category}')" class="btn-icon btn-assign" title="指派任務">👤</button>`;
+        }
+
+        if (canNotify && !task.isDeleted) {
+            let lineText = '';
+            if (task.category === 'NGS收件' && task.details) {
+                lineText = `【NGS案件通知】\n單位: ${task.details.unit}\n主持人: ${task.details.pi}\n項目: ${task.details.needs === '萃取' ? task.details.expType : task.details.nucleicType}\n負責業務: ${task.details.sales}`;
+            } else {
+                const plainTitle = task.title.replace(/<[^>]*>/g, '');
+                lineText = `【任務通知】\n${plainTitle}`;
+            }
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (!isMobile) {
+                 rightButtonsHtml += `<button onclick="copyToClipboard(\`${lineText.replace(/`/g, '\\`')}\`)" class="btn-icon btn-copy" title="複製通知文字">📋</button>`;
+            } else {
+                const encodedText = encodeURIComponent(lineText);
+                rightButtonsHtml += `<a href="https://line.me/R/share?text=${encodedText}" target="_blank" class="btn-icon btn-line" style="text-decoration:none;" title="LINE通知">💬</a>`;
+            }
+        }
+        
+        let assignedBadge = '';
+        if (task.assignedTo) {
+            assignedBadge = `<span class="assign-badge">${getUserDisplayName(task.assignedTo)}</span>`;
+        }
+
+        const clickEvent = (!task.isDeleted) ? `onclick="openModal('${task.id}')"` : '';
+        div.innerHTML = `${checkboxHtml}<div class="task-content"><div class="task-title" ${clickEvent}>${task.title} ${assignedBadge}</div>${ngsInfoHtml}${metaHtml}</div><div class="action-area">${rightButtonsHtml}<div class="history-dot" onclick="showHistory('${task.id}')">⋮</div>${actionBtn}</div>`;
+        return div;
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => alert("已複製通知內容！")).catch(err => prompt("請手動複製:", text));
+    }
+    
     function toggleTask(id) { const task = state.tasks.find(t => t.id === id); if(task) { const newVal = !task.completed; updateTaskDb(id, { completed: newVal, completedBy: newVal ? state.currentUser.name : null, completedAt: newVal ? new Date().toISOString() : null }, newVal ? '完成' : '重啟', newVal ? '標記為完成' : '取消完成狀態'); } }
     function getDropdownOrInput(selectId, inputId) { const sel = document.getElementById(selectId).value; return (sel === '其他') ? document.getElementById(inputId).value.trim() : sel; }
     function saveTask() { 
