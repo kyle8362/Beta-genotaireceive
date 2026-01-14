@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="robots" content="noindex, nofollow">
-    <title>中區收送件進度追蹤系統 (Fix v42)</title>
+    <title>中區收送件進度追蹤系統 (Fix v43)</title>
 
     <script src="https://unpkg.com/firebase@9.22.2/firebase-app-compat.js"></script>
     <script src="https://unpkg.com/firebase@9.22.2/firebase-firestore-compat.js"></script>
@@ -15,7 +15,7 @@
             --sidebar-bg: #ffffff; --text-main: #111827; --text-light: #6b7280;
             --border: #e5e7eb; --danger: #ef4444; --success: #10b981; --warning: #f59e0b;
             --genesis: #7e22ce; --line-green: #06c755; --blue: #2563eb;
-            --assign-bg: #6366f1; /* Indigo for assignment */
+            --assign-bg: #4f46e5; /* Stronger Indigo */
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: var(--bg); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; }
@@ -108,19 +108,20 @@
         .task-item.completed-item .task-title { color: #9ca3af; text-decoration: line-through; }
         .ngs-badge { display: inline-block; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc; background: #fdfdfd; margin-right: 5px; margin-top: 3px; color: #555; }
         
-        /* IMPROVED ASSIGN BADGE */
+        /* === ENHANCED ASSIGN BADGE === */
         .assign-badge { 
             display: inline-block; 
-            font-size: 0.85rem; 
+            font-size: 0.9rem; 
             background: var(--assign-bg); 
             color: white; 
-            padding: 2px 8px; 
-            border-radius: 4px; 
+            padding: 4px 10px; 
+            border-radius: 20px; 
             margin-left: 8px; 
             vertical-align: middle; 
-            font-weight: 600; 
-            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+            font-weight: 700; 
+            box-shadow: 0 2px 5px rgba(79, 70, 229, 0.4);
             white-space: nowrap;
+            letter-spacing: 0.5px;
         }
 
         .action-area { display: flex; flex-direction: column; align-items: center; gap: 8px; }
@@ -407,6 +408,7 @@
             else if (state.currentUser.role !== me.role) { state.currentUser.role = me.role; localStorage.setItem('tt_current_user', JSON.stringify(state.currentUser)); updateUIForRole(); }
         }
     });
+    // Listen for Settings
     db.collection('settings').doc('ngs_sales').onSnapshot(doc => {
         if(doc.exists) state.salesOptions = doc.data().list || ['Jeff', '廖軒逵'];
         else { state.salesOptions = ['Jeff', '廖軒逵']; db.collection('settings').doc('ngs_sales').set({ list: state.salesOptions }); }
@@ -485,14 +487,14 @@
         const canConfig = ['creator','senior'].includes(state.currentUser.role);
         document.getElementById('adminPanelBtn').style.display = canManage ? 'block' : 'none';
         document.getElementById('statsPanelBtn').style.display = canConfig ? 'block' : 'none';
-        document.getElementById('settingsBtn').style.display = canConfig ? 'block' : 'none';
-        document.getElementById('importBtn').style.display = canManage ? 'block' : 'none';
+        document.getElementById('settingsBtn').style.display = canConfig ? 'block' : 'none'; // Fixed ID
+        document.getElementById('importBtn').style.display = canManage ? 'block' : 'none'; // Fixed ID
     }
 
     /* --- SETTINGS HUB (Sales & Assignment) --- */
     function openSettingsModal() {
         document.getElementById('settingsModal').style.display = 'flex';
-        document.getElementById('settingsTypeSelect').value = 'sales';
+        document.getElementById('settingsTypeSelect').value = 'sales'; // Default
         switchSettingsView();
     }
     function switchSettingsView() {
@@ -555,6 +557,7 @@
         const allowedUsers = state.assignmentRules[category] || [];
         let targetUsers = [];
         
+        // If rules exist, use them. If not, fallback to all approved.
         if (allowedUsers.length > 0) {
             targetUsers = state.users.filter(u => allowedUsers.includes(u.username));
         } else {
@@ -564,9 +567,11 @@
         if (targetUsers.length === 0) { list.innerHTML = '<li style="padding:10px; color:#666;">無可用指派對象，請至後台設定。</li>'; }
         
         targetUsers.forEach(u => {
-            const li = document.createElement('li'); li.className = 'user-item'; style="cursor:pointer;"
+            const li = document.createElement('li'); 
+            li.className = 'user-item'; 
+            li.style.cursor = 'pointer'; // Fixed Syntax Error
             const dName = u.nickname || u.username;
-            li.innerHTML = `<div style="font-weight:bold; cursor:pointer; width:100%; padding:5px;" onclick="confirmAssign('${u.username}')">${dName}</div>`;
+            li.innerHTML = `<div style="font-weight:bold; width:100%; padding:5px;" onclick="confirmAssign('${u.username}')">${dName}</div>`;
             list.appendChild(li);
         });
         document.getElementById('assignModal').style.display = 'flex';
@@ -629,7 +634,7 @@
             container.appendChild(group);
         });
 
-        // Completed (Grouped & Collapsible)
+        // Completed
         const completedTasks = dayTasks.filter(t => t.completed && !t.isDeleted);
         if (completedTasks.length > 0) {
             const compSection = document.createElement('div'); compSection.className = 'category-group completed-section';
@@ -648,7 +653,7 @@
             container.appendChild(compSection);
         }
 
-        // Deleted (Grouped & Collapsible)
+        // Deleted
         const deletedTasks = dayTasks.filter(t => t.isDeleted);
         if (deletedTasks.length > 0) {
             const delSection = document.createElement('div'); delSection.className = 'category-group deleted-section';
