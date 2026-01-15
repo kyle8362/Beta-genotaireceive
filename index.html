@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="robots" content="noindex, nofollow">
-    <title>中區收送件進度追蹤系統 (v51 Scroll Fix)</title>
+    <title>中區收送件進度追蹤系統 (v51 Copy Unlock)</title>
 
     <script src="https://unpkg.com/firebase@9.22.2/firebase-app-compat.js"></script>
     <script src="https://unpkg.com/firebase@9.22.2/firebase-firestore-compat.js"></script>
@@ -32,43 +32,13 @@
         #app-screen { display: flex; width: 100%; height: 100%; position: relative; }
         #mobile-menu-btn { display: none; position: absolute; top: 15px; left: 15px; z-index: 1100; background: white; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 1.5rem; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); color: var(--primary); }
         #sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 900; backdrop-filter: blur(2px); }
+        aside { width: 280px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 1.5rem; box-sizing: border-box; transition: transform 0.3s ease; }
         
-        /* === SIDEBAR MODIFIED FOR SCROLLING === */
-        aside { 
-            width: 280px; 
-            background: var(--sidebar-bg); 
-            border-right: 1px solid var(--border); 
-            display: flex; 
-            flex-direction: column; 
-            box-sizing: border-box; 
-            transition: transform 0.3s ease; 
-            padding: 0; /* Clear global padding */
-        }
-        
-        .sidebar-fixed {
-            padding: 1.5rem 1.5rem 0.5rem 1.5rem;
-            flex-shrink: 0; /* Do not shrink */
-            background: var(--sidebar-bg);
-            z-index: 10;
-        }
-
-        .sidebar-scroll {
-            padding: 0.5rem 1.5rem 1.5rem 1.5rem;
-            flex-grow: 1;
-            overflow-y: auto; /* Enable vertical scroll */
-            /* Custom Scrollbar */
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e1 transparent;
-        }
-        .sidebar-scroll::-webkit-scrollbar { width: 5px; }
-        .sidebar-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
-
-        /* ======================================= */
-        
-        .user-profile { display: flex; align-items: center; gap: 10px; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+        .user-profile { display: flex; align-items: center; gap: 10px; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
         .avatar { width: 40px; height: 40px; background: var(--primary); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; flex-shrink: 0; }
         .logout-link { font-size: 0.8rem; color: var(--danger); cursor: pointer; margin-top: 2px;}
         
+        /* Sidebar Buttons */
         .sidebar-btn { padding: 10px; border-radius: 6px; text-align: center; cursor: pointer; font-weight: 600; margin-bottom: 10px; display: block; font-size: 0.9rem; border: 1px solid transparent; width: 100%; }
         .sidebar-btn:hover { opacity: 0.9; }
         .btn-nav-active { background: var(--primary); color: white; border-color: var(--primary); }
@@ -85,7 +55,7 @@
         .sidebar-section h3 { font-size: 0.85rem; text-transform: uppercase; color: var(--text-light); letter-spacing: 1px; margin-bottom: 1rem; }
         input[type="date"] { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); box-sizing: border-box; font-family: inherit; }
         
-        /* SEARCH BOX STYLES */
+        /* === SEARCH BOX STYLES === */
         .search-box { position: relative; margin-bottom: 20px; }
         .search-box input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; margin-bottom: 5px; font-size: 0.9rem; }
         .search-results { list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; background: white; border: 1px solid #eee; border-radius: 6px; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
@@ -93,7 +63,7 @@
         .search-item:hover { background: #f0fdfa; color: var(--primary); }
         .search-item:last-child { border-bottom: none; }
 
-        .history-list { list-style: none; padding: 0; margin: 0; /* overflow handled by parent */ }
+        .history-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
         .history-item { padding: 10px; cursor: pointer; border-radius: 6px; color: var(--text-main); margin-bottom: 4px; display: flex; justify-content: space-between; }
         .history-item:hover { background: #f8fafc; }
         .history-item.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
@@ -268,44 +238,39 @@
 
 <div id="app-screen" style="display:none;">
     <aside>
-        <div class="sidebar-fixed">
-            <div class="user-profile">
-                <div class="avatar" id="userAvatar">U</div>
-                <div>
-                    <div style="font-weight: 600;" id="displayUsername">User</div>
-                    <div class="logout-link" onclick="logout()">登出帳號</div>
-                </div>
+        <div class="user-profile">
+            <div class="avatar" id="userAvatar">U</div>
+            <div>
+                <div style="font-weight: 600;" id="displayUsername">User</div>
+                <div class="logout-link" onclick="logout()">登出帳號</div>
             </div>
-            
-            <button class="sidebar-btn btn-nav-active" id="btnTabTasks" onclick="switchTab('tasks')">📋 任務看板</button>
-            <button class="sidebar-btn btn-client-search" id="btnTabCustomers" onclick="switchTab('customers')">🏢 客戶位置查詢</button>
-            <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+        </div>
+        
+        <button class="sidebar-btn btn-nav-active" id="btnTabTasks" onclick="switchTab('tasks')">📋 任務看板</button>
+        <button class="sidebar-btn btn-client-search" id="btnTabCustomers" onclick="switchTab('customers')">🏢 客戶位置查詢</button>
+        <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+
+        <div class="admin-btn btn-perm" id="adminPanelBtn" onclick="openUserModal()">👥 成員權限管理</div>
+        <div class="admin-btn btn-settings" id="salesSettingsBtn" onclick="openSalesSettings()">⚙️ 標籤選單後台設定</div>
+        <div class="admin-btn btn-assign-settings" id="assignSettingsBtn" onclick="openAssignSettingsModal()">👤 指派任務帳號設定</div>
+        <div class="admin-btn btn-import" id="importBtn" onclick="openImportModal()">📥 批量匯入任務</div>
+        <div class="admin-btn btn-stats" id="statsPanelBtn" onclick="openStatsModal()">📊 任務完成統整</div>
+        
+        <div class="sidebar-section" id="taskSearchSection">
+            <h3>🔍 搜尋任務</h3>
+            <div class="search-box">
+                <input type="text" id="searchTaskInput" placeholder="輸入關鍵字..." oninput="handleSearch()">
+                <ul class="search-results" id="searchResults"></ul>
+            </div>
         </div>
 
-        <div class="sidebar-scroll">
-            <div class="admin-btn btn-perm" id="adminPanelBtn" onclick="openUserModal()">👥 成員權限管理</div>
-            <div class="admin-btn btn-settings" id="salesSettingsBtn" onclick="openSalesSettings()">⚙️ 標籤選單後台設定</div>
-            <div class="admin-btn btn-assign-settings" id="assignSettingsBtn" onclick="openAssignSettingsModal()">👤 指派任務帳號設定</div>
-            <div class="admin-btn btn-import" id="importBtn" onclick="openImportModal()">📥 批量匯入任務</div>
-            <div class="admin-btn btn-stats" id="statsPanelBtn" onclick="openStatsModal()">📊 任務完成統整</div>
-            
-            <div class="sidebar-section" id="taskSearchSection">
-                <h3>🔍 搜尋任務</h3>
-                <div class="search-box">
-                    <input type="text" id="searchTaskInput" placeholder="輸入關鍵字..." oninput="handleSearch()">
-                    <ul class="search-results" id="searchResults"></ul>
-                </div>
-            </div>
-
-            <div class="sidebar-section" id="taskDateSection">
-                <h3>📅 日期選擇</h3>
-                <input type="date" id="dateSearch" onchange="changeDate(this.value)">
-            </div>
-            
-            <div class="sidebar-section" style="margin-top:20px;">
-                <h3>🕒 最近檢視紀錄</h3>
-                <ul class="history-list" id="historyList"></ul>
-            </div>
+        <div class="sidebar-section" id="taskDateSection">
+            <h3>📅 日期選擇</h3>
+            <input type="date" id="dateSearch" onchange="changeDate(this.value)">
+        </div>
+        <div class="sidebar-section" style="flex-grow: 1; display:flex; flex-direction:column; margin-top:20px;">
+            <h3>🕒 最近檢視紀錄</h3>
+            <ul class="history-list" id="historyList"></ul>
         </div>
     </aside>
 
@@ -476,7 +441,7 @@
         renderCustomers(filtered);
     }
     
-    // --- SEARCH TASKS (v50) ---
+    // --- SEARCH TASKS (v50 Restored) ---
     function handleSearch() {
         const input = document.getElementById('searchTaskInput');
         const list = document.getElementById('searchResults');
@@ -493,7 +458,6 @@
 
         if (matches.length > 0) {
             list.style.display = 'block';
-            list.classList.add('has-results');
             matches.sort((a,b) => new Date(b.date) - new Date(a.date));
             matches.slice(0, 20).forEach(t => {
                 const li = document.createElement('li');
@@ -707,8 +671,13 @@
 
     /* --- USER MANAGEMENT --- */
     function openUserModal() {
+        renderUserList(); // Call render function
+        document.getElementById('userModal').style.display = 'flex';
+    }
+
+    function renderUserList() {
         const list = document.getElementById('userListDisplay'); 
-        const myRole = state.currentUser ? state.currentUser.role : 'user'; 
+        if(!list) return; 
         const filterRole = document.getElementById('userFilterSelect') ? document.getElementById('userFilterSelect').value : 'all'; 
         
         list.innerHTML = '';
@@ -741,6 +710,7 @@
             if(!user.isApproved) { badgeClass = ''; badgeText = '待審核'; }
             
             const isTargetCreator = user.role === 'creator';
+            const myRole = state.currentUser ? state.currentUser.role : 'user';
             let controlsHtml = '';
             
             if (myRole === 'creator' || myRole === 'senior') {
@@ -767,16 +737,13 @@
         });
         document.getElementById('userModal').style.display = 'flex';
     }
-    
-    // Alias function for 'renderUserList' as some HTML might call it
-    const renderUserList = openUserModal;
 
     function togglePasswordVisibility(id) { const input = document.getElementById(id); input.type = input.type === "password" ? "text" : "password"; }
     function updateUser(docId) {
         const role = document.getElementById(`role_${docId}`).value; const note = document.getElementById(`note_${docId}`).value; const nick = document.getElementById(`nick_${docId}`).value;
         db.collection('users').doc(docId).update({ role: role, remarks: note, nickname: nick, isApproved: true }).then(() => alert('資料已更新'));
     }
-    function deleteUser(docId) { if(confirm('確定要刪除？')) db.collection('users').doc(docId).delete().then(() => openUserModal()); }
+    function deleteUser(docId) { if(confirm('確定要刪除？')) db.collection('users').doc(docId).delete().then(() => renderUserList()); }
     function approveUserSimple(docId) { db.collection('users').doc(docId).update({ isApproved: true }).then(() => alert('已核准')); }
 
     /* --- TASKS RENDER --- */
@@ -851,7 +818,6 @@
         }
         let actionBtn = task.isDeleted ? `<button class="btn-icon btn-restore" onclick="restoreTask('${task.id}')">↩ 還原</button>` : `<button class="btn-icon btn-delete" onclick="deleteTask('${task.id}')">×</button>`;
         let rightButtonsHtml = '';
-        const canNotify = ['creator', 'senior', 'admin'].includes(state.currentUser.role);
         if (!task.isDeleted) rightButtonsHtml += `<button onclick="openAssignModal('${task.id}', '${task.category}')" class="btn-icon btn-assign" title="指派任務">👤</button>`;
         if (!task.isDeleted) { // Copy Button for everyone
             let lineText = '';
