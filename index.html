@@ -232,114 +232,9 @@
             DataService._syncToSheet(item); // 同步
         },
 
-        // 取消下單
-        revertOrder: (index) => {
-            const item = DataService._localData[index];
-            const timeStr = Utils.getTimeStr();
-            
-            item.ordered.val = "";
-            item.ordered.time = "";
-            
-            if (item.sap.val) item.status = Config.status.SAP_FILLED;
-            else if (item.pur.val) item.status = Config.status.PUR_FILLED;
-            else item.status = Config.status.NEW;
-
-            item.logs.push(`${timeStr} - ${Config.currentUser} - 取消下單 (退回流程)`);
-            
-            DataService._syncToSheet(item); // 同步
-        },
-
-        // 修改資料
-        modify: (index, newId, newPur, newSap) => {
-            const item = DataService._localData[index];
-            const timeStr = Utils.getTimeStr();
-            let changes = [];
-            
-            // 若 ID 改變，邏輯會比較複雜(通常不建議改ID)，這裡簡單處理：直接存新的一筆並覆蓋
-            // 但因為後端是用 ID 判斷，如果改 ID 會變成「新增」一筆，舊的還在。
-            // 為了簡化，建議只改內容，或是在後端處理 ID 變更 (需要傳 oldId)
-            // 這裡我們先假設 ID 不變，或者後端邏輯能接受新增
-            
-            if(item.id !== newId) { changes.push(`ID: ${item.id}->${newId}`); item.id = newId; }
-            if(item.pur.val !== newPur) { changes.push(`PUR: ${item.pur.val}->${newPur}`); item.pur.val = newPur; }
-            if(item.sap.val !== newSap) { changes.push(`SAP: ${item.sap.val}->${newSap}`); item.sap.val = newSap; }
-            
-            if(changes.length > 0) {
-                item.logs.push(`${timeStr} - ${Config.currentUser} - 修改資料: ${changes.join(", ")}`);
-                DataService._syncToSheet(item); // 同步
-            }
-        },
-
-        // 刪除 (軟刪除)
-        delete: (index) => {
-            const item = DataService._localData[index];
-            const timeStr = Utils.getTimeStr();
-            item.status = Config.status.CANCELLED;
-            item.logs.push(`${timeStr} - ${Config.currentUser} - 刪除 (採購取消)`);
-            
-            DataService._syncToSheet(item); // 同步
-        },
-
-        // 恢復
-        restore: (index) => {
-            const item = DataService._localData[index];
-            const timeStr = Utils.getTimeStr();
-            
-            if (item.ordered.val === "已下單") item.status = Config.status.ORDERED;
-            else if (item.sap.val) item.status = Config.status.SAP_FILLED;
-            else if (item.pur.val) item.status = Config.status.PUR_FILLED;
-            else item.status = Config.status.NEW;
-
-            item.logs.push(`${timeStr} - ${Config.currentUser} - 恢復採購`);
-            
-            DataService._syncToSheet(item); // 同步
-        }
-    };,
-
-        // 取得資料
-        getAll: () => DataService._data,
-
-        // 新增資料
-        add: (id) => {
-            const timeStr = Utils.getTimeStr();
-            const newRow = {
-                id: id, createDate: Utils.getDateStr(),
-                pur: { val: "", time: "" }, sap: { val: "", time: "" }, ordered: { val: "", time: "" },
-                status: Config.status.NEW,
-                logs: [`${timeStr} - ${Config.currentUser} - 建立訂單 (${id})`]
-            };
-            DataService._data.unshift(newRow); // 新增到最前
-        },
-
-        // 更新欄位 (PUR/SAP)
-        updateField: (index, field, val) => {
-            const item = DataService._data[index];
-            const timeStr = Utils.getTimeStr();
-            
-            if(field === 'pur') {
-                item.pur.val = val; item.pur.time = timeStr;
-                item.status = Config.status.PUR_FILLED;
-                item.logs.push(`${timeStr} - ${Config.currentUser} - 填寫PUR: ${val}`);
-            } else if (field === 'sap') {
-                item.sap.val = val; item.sap.time = timeStr;
-                item.status = Config.status.SAP_FILLED;
-                item.logs.push(`${timeStr} - ${Config.currentUser} - 填寫SAP: ${val}`);
-            }
-        },
-
-        // 確認下單
-        confirmOrder: (index) => {
-            const item = DataService._data[index];
-            const timeStr = Utils.getTimeStr();
-            item.ordered.val = "已下單";
-            item.ordered.time = timeStr;
-            item.status = Config.status.ORDERED;
-            item.logs.push(`${timeStr} - ${Config.currentUser} - 確認已下單 (結案)`);
-        },
-
         // 取消下單 (退回上一動作) - 需求1
         revertOrder: (index) => {
-            const item = DataService._data[index];
+            const item = DataService._localData[index];
             const timeStr = Utils.getTimeStr();
             
             // 清除下單資料
@@ -352,33 +247,39 @@
             else item.status = Config.status.NEW;
 
             item.logs.push(`${timeStr} - ${Config.currentUser} - 取消下單 (退回流程)`);
+            
+            DataService._syncToSheet(item); // 同步
         },
 
         // 修改資料
         modify: (index, newId, newPur, newSap) => {
-            const item = DataService._data[index];
+            const item = DataService._localData[index];
             const timeStr = Utils.getTimeStr();
             let changes = [];
+            
             if(item.id !== newId) { changes.push(`ID: ${item.id}->${newId}`); item.id = newId; }
             if(item.pur.val !== newPur) { changes.push(`PUR: ${item.pur.val}->${newPur}`); item.pur.val = newPur; }
             if(item.sap.val !== newSap) { changes.push(`SAP: ${item.sap.val}->${newSap}`); item.sap.val = newSap; }
             
             if(changes.length > 0) {
                 item.logs.push(`${timeStr} - ${Config.currentUser} - 修改資料: ${changes.join(", ")}`);
+                DataService._syncToSheet(item); // 同步
             }
         },
 
         // 刪除 (軟刪除) - 需求2
         delete: (index) => {
-            const item = DataService._data[index];
+            const item = DataService._localData[index];
             const timeStr = Utils.getTimeStr();
             item.status = Config.status.CANCELLED;
             item.logs.push(`${timeStr} - ${Config.currentUser} - 刪除 (採購取消)`);
+            
+            DataService._syncToSheet(item); // 同步
         },
 
         // 恢復
         restore: (index) => {
-            const item = DataService._data[index];
+            const item = DataService._localData[index];
             const timeStr = Utils.getTimeStr();
             // 智慧恢復
             if (item.ordered.val === "已下單") item.status = Config.status.ORDERED;
@@ -387,6 +288,8 @@
             else item.status = Config.status.NEW;
 
             item.logs.push(`${timeStr} - ${Config.currentUser} - 恢復採購`);
+            
+            DataService._syncToSheet(item); // 同步
         }
     };
 
@@ -637,4 +540,3 @@
 
 </body>
 </html>
-
