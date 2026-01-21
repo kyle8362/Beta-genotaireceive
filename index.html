@@ -3,62 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>採購流程進度追蹤 - 測試版</title>
+    <title>採購流程進度追蹤 - 完整版</title>
     <style>
-        body { font-family: "Microsoft JhengHei", Arial, sans-serif; background-color: #f4f7f6; padding: 20px; }
-        .container { max-width: 1000px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        body { font-family: "Microsoft JhengHei", Arial, sans-serif; background-color: #f4f7f6; padding: 20px; font-size: 14px;}
+        .container { min-width: 1200px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow-x: auto; }
         
-        /* 標題與篩選區 */
+        /* 頂部操作區 */
         .header-section { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 10px; }
-        .filter-group { background: #f9f9f9; padding: 10px; border-radius: 5px; }
+        .btn-add { background-color: #e67e22; color: white; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; }
+        .btn-add:hover { background-color: #d35400; }
 
         /* 表格樣式 */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { background-color: #007bff; color: white; padding: 12px; text-align: center; }
-        td { padding: 10px; border: 1px solid #ddd; text-align: center; }
+        th { background-color: #2c3e50; color: white; padding: 10px; text-align: center; white-space: nowrap; }
+        td { padding: 8px; border: 1px solid #ddd; text-align: center; vertical-align: middle; }
         tr:nth-child(even) { background-color: #fcfcfc; }
 
-        /* 狀態標籤顏色 */
-        .badge { padding: 5px 10px; border-radius: 12px; color: white; font-size: 13px; font-weight: bold; }
-        .bg-wait { background-color: #6c757d; } /* 待處理 */
-        .bg-pur  { background-color: #17a2b8; } /* 已請購 */
-        .bg-sap  { background-color: #6f42c1; } /* 已採購 */
-        .bg-done { background-color: #28a745; } /* 已完成 */
+        /* 紀錄欄位樣式 (讓字小一點，靠左對齊) */
+        .log-cell { text-align: left; font-size: 12px; color: #555; max-width: 250px; line-height: 1.4; }
+        
+        /* 狀態標籤 */
+        .badge { padding: 4px 8px; border-radius: 4px; color: white; font-size: 12px; font-weight: bold; display: inline-block;}
+        .st-new { background-color: #95a5a6; } /* 新建立 */
+        .st-pur { background-color: #17a2b8; } /* 已填PUR */
+        .st-sap { background-color: #6f42c1; } /* 已填SAP */
+        .st-ordered { background-color: #28a745; } /* 已下單 */
 
-        /* 按鈕樣式 */
-        .btn { cursor: pointer; border: none; padding: 6px 12px; border-radius: 4px; transition: 0.3s; }
-        .btn-primary { background-color: #007bff; color: white; }
-        .btn-primary:hover { background-color: #0056b3; }
-        .btn-refresh { background-color: #4CAF50; color: white; margin-left: 10px; }
+        /* 操作按鈕 */
+        .btn { cursor: pointer; border: none; padding: 5px 10px; border-radius: 3px; font-size: 13px; margin: 2px; }
+        .btn-action { background-color: #3498db; color: white; }
+        .btn-action:hover { background-color: #2980b9; }
+        .btn-final { background-color: #27ae60; color: white; }
+        .btn-final:hover { background-color: #219150; }
+
+        /* 時間戳記小字 */
+        .timestamp { display: block; font-size: 11px; color: #888; margin-top: 2px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header-section">
-        <h2>📦 採購進度追蹤 Tab</h2>
-        <div class="filter-group">
-            <label>狀態篩選：</label>
+        <div>
+            <h2>📦 採購流程進度表</h2>
+            <button class="btn-add" onclick="addNewOrder()">➕ 新增一筆採購訂單</button>
+        </div>
+        <div>
+            <label>篩選：</label>
             <select id="statusFilter" onchange="renderTable()">
-                <option value="All">全部</option>
-                <option value="待請購">待請購</option>
-                <option value="已請購">已請購</option>
-                <option value="已採購">已採購</option>
-                <option value="已完成">已完成</option>
+                <option value="All">全部顯示</option>
+                <option value="新建立">新建立</option>
+                <option value="已填PUR">已填PUR</option>
+                <option value="已填SAP">已填SAP</option>
+                <option value="已下單">已下單</option>
             </select>
-            <button class="btn btn-refresh" onclick="location.reload()">🔄 刷新頁面</button>
         </div>
     </div>
 
     <table id="purchaseTable">
         <thead>
             <tr>
-                <th>訂單編號/備庫存</th>
-                <th>狀態</th>
-                <th>PUR單號</th>
-                <th>SAP單號</th>
-                <th>下單時間</th>
-                <th>執行操作</th>
+                <th style="width: 100px;">建立日期</th>
+                <th style="width: 120px;">訂單/庫存編號</th>
+                <th>PUR 單號資訊</th>
+                <th>SAP 單號資訊</th>
+                <th>最終下單確認</th>
+                <th style="width: 280px;">📝 操作紀錄 (Log)</th>
+                <th style="width: 80px;">狀態</th>
+                <th style="width: 120px;">執行操作</th>
             </tr>
         </thead>
         <tbody id="tableBody">
@@ -67,47 +79,85 @@
 </div>
 
 <script>
-    // --- 測試用模擬資料 (這部分之後會換成讀取 Google Sheet) ---
+    // --- 模擬資料庫結構 ---
+    // status: "新建立" -> "已填PUR" -> "已填SAP" -> "已下單"
     let mockData = [
-        { id: "A2024001", pur: "", sap: "", qia: "", time: "", status: "待請購", note: "" },
-        { id: "A2024002", pur: "PUR-9988", sap: "", qia: "", time: "", status: "已請購", note: "" },
-        { id: "備庫存-C1", pur: "PUR-7766", sap: "SAP-12345", qia: "Q-443", time: "2024/05/20 14:00", status: "已採購", note: "" }
+        { 
+            id: "A2024-001", 
+            createDate: "2024/01/20", 
+            pur: { val: "", time: "" },
+            sap: { val: "", time: "" },
+            ordered: { val: "", time: "" },
+            status: "新建立",
+            logs: ["2024/01/20 09:00 - Admin - 建立訂單"]
+        }
     ];
 
-    // 渲染表格函式
+    // 模擬當前使用者 (未來接上 Google 後會抓 Session.getActiveUser())
+    const CURRENT_USER = "測試員";
+
+    // 1. 取得現在時間字串
+    function getNowStr() {
+        const now = new Date();
+        // 格式: MM/dd HH:mm
+        return `${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+    }
+
+    // 2. 渲染表格
     function renderTable() {
         const tbody = document.getElementById('tableBody');
-        const filterValue = document.getElementById('statusFilter').value;
+        const filter = document.getElementById('statusFilter').value;
         tbody.innerHTML = '';
 
         mockData.forEach((item, index) => {
-            if (filterValue !== "All" && item.status !== filterValue) return;
+            if (filter !== "All" && item.status !== filter) return;
 
-            let badgeClass = "";
+            // 狀態顏色判斷
+            let badgeClass = "st-new";
             let actionBtn = "";
 
-            // 根據狀態判斷顏色與按鈕
-            if (item.status === "待請購") {
-                badgeClass = "bg-wait";
-                actionBtn = `<button class="btn btn-primary" onclick="updateStep(${index}, 'pur')">填寫 PUR 單</button>`;
-            } else if (item.status === "已請購") {
-                badgeClass = "bg-pur";
-                actionBtn = `<button class="btn btn-primary" onclick="updateStep(${index}, 'sap')">填寫 SAP 單</button>`;
-            } else if (item.status === "已採購") {
-                badgeClass = "bg-sap";
-                actionBtn = `<button class="btn btn-primary" onclick="updateStep(${index}, 'done')">結案完成</button>`;
-            } else {
-                badgeClass = "bg-done";
+            // 邏輯狀態機
+            if (item.status === "新建立") {
+                badgeClass = "st-new";
+                actionBtn = `<button class="btn btn-action" onclick="updateStep(${index}, 'pur')">填寫 PUR</button>`;
+            } else if (item.status === "已填PUR") {
+                badgeClass = "st-pur";
+                actionBtn = `<button class="btn btn-action" onclick="updateStep(${index}, 'sap')">填寫 SAP</button>`;
+            } else if (item.status === "已填SAP") {
+                badgeClass = "st-sap";
+                actionBtn = `<button class="btn btn-final" onclick="updateStep(${index}, 'order')">✅ 確認下單</button>`;
+            } else if (item.status === "已下單") {
+                badgeClass = "st-ordered";
                 actionBtn = `<span style="color:#aaa">流程結束</span>`;
             }
 
+            // 組合 Log 顯示 (換行顯示)
+            let logHtml = item.logs.join("<br>");
+
             const tr = `
                 <tr>
+                    <td>${item.createDate}</td>
                     <td><strong>${item.id}</strong></td>
+                    
+                    <td>
+                        ${item.pur.val || '--'}
+                        ${item.pur.time ? `<span class="timestamp">(${item.pur.time})</span>` : ''}
+                    </td>
+                    
+                    <td>
+                        ${item.sap.val || '--'}
+                        ${item.sap.time ? `<span class="timestamp">(${item.sap.time})</span>` : ''}
+                    </td>
+
+                    <td>
+                        ${item.ordered.val || '--'}
+                        ${item.ordered.time ? `<span class="timestamp">(${item.ordered.time})</span>` : ''}
+                    </td>
+
+                    <td class="log-cell">${logHtml}</td>
+
                     <td><span class="badge ${badgeClass}">${item.status}</span></td>
-                    <td>${item.pur || '-'}</td>
-                    <td>${item.sap || '-'}</td>
-                    <td>${item.time || '-'}</td>
+
                     <td>${actionBtn}</td>
                 </tr>
             `;
@@ -115,34 +165,63 @@
         });
     }
 
-    // 模擬操作流程
-    function updateStep(index, type) {
-        const item = mockData[index];
+    // 3. 新增訂單
+    function addNewOrder() {
+        const orderId = prompt("請輸入新的「訂單編號」或「備庫存編號」：");
+        if (!orderId) return;
+
+        const nowStr = getNowStr();
+        const newRow = {
+            id: orderId,
+            createDate: nowStr,
+            pur: { val: "", time: "" },
+            sap: { val: "", time: "" },
+            ordered: { val: "", time: "" },
+            status: "新建立",
+            logs: [`${nowStr} - ${CURRENT_USER} - 建立訂單`]
+        };
         
-        if (type === 'pur') {
-            const purId = prompt("請輸入 PUR 單號：");
-            if (purId) {
-                item.pur = purId;
-                item.status = "已請購";
-            }
-        } else if (type === 'sap') {
-            const sapId = prompt("請輸入 SAP 單號：");
-            if (sapId) {
-                item.sap = sapId;
-                item.status = "已採購";
-                item.time = new Date().toLocaleString(); // 自動記錄當下時間
-            }
-        } else if (type === 'done') {
-            if (confirm("確定完成此筆訂單？")) {
-                item.status = "已完成";
-            }
-        }
-        
-        renderTable(); // 重新渲染畫面
-        console.log("最新資料狀態：", mockData);
+        // 新增到最前面
+        mockData.unshift(newRow);
+        renderTable();
     }
 
-    // 初始載入
+    // 4. 更新流程步驟
+    function updateStep(index, type) {
+        const item = mockData[index];
+        const nowStr = getNowStr();
+
+        if (type === 'pur') {
+            const inputVal = prompt(`訂單 [${item.id}]\n請輸入 PUR 單號：`);
+            if (!inputVal) return;
+
+            item.pur.val = inputVal;
+            item.pur.time = nowStr;
+            item.status = "已填PUR";
+            item.logs.push(`${nowStr} - ${CURRENT_USER} - 填寫PUR: ${inputVal}`);
+
+        } else if (type === 'sap') {
+            const inputVal = prompt(`訂單 [${item.id}]\n請輸入 SAP 單號：`);
+            if (!inputVal) return;
+
+            item.sap.val = inputVal;
+            item.sap.time = nowStr;
+            item.status = "已填SAP";
+            item.logs.push(`${nowStr} - ${CURRENT_USER} - 填寫SAP: ${inputVal}`);
+
+        } else if (type === 'order') {
+            if (!confirm(`確認訂單 [${item.id}] 已向原廠完成下單？`)) return;
+
+            item.ordered.val = "已下單"; // 這裡顯示文字，或者您想填入原廠單號也可以
+            item.ordered.time = nowStr;
+            item.status = "已下單";
+            item.logs.push(`${nowStr} - ${CURRENT_USER} - 點選已下單`);
+        }
+
+        renderTable();
+    }
+
+    // 初始執行
     renderTable();
 </script>
 
