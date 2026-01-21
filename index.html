@@ -8,32 +8,53 @@
         body { font-family: "Microsoft JhengHei", Arial, sans-serif; background-color: #f4f7f6; padding: 20px; font-size: 14px;}
         .container { min-width: 1300px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding-bottom: 50px;}
         
-        /* --- 頂部工具列 --- */
-        .header-section { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 15px; }
-        .toolbar-left { display: flex; gap: 10px; align-items: center; }
+        /* --- 頂部區塊 (修改版：標題與操作列分開) --- */
+        .header-section { 
+            display: flex; 
+            flex-direction: column; /* 改為直向排列 */
+            border-bottom: 2px solid #eee; 
+            margin-bottom: 20px; 
+            padding-bottom: 15px; 
+        }
         
-        .btn-add { background-color: #e67e22; color: white; padding: 8px 16px; font-size: 15px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px;}
+        .header-title {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 24px;
+        }
+
+        .toolbar-row {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            width: 100%;
+        }
+
+        .toolbar-left { display: flex; gap: 10px; align-items: center; }
+
+        /* 按鈕樣式 */
+        .btn-add { background-color: #e67e22; color: white; padding: 10px 20px; font-size: 15px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px;}
         .btn-add:hover { background-color: #d35400; }
         
-        .btn-filter { background-color: #34495e; color: white; padding: 8px 16px; font-size: 15px; border-radius: 5px; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px;}
+        .btn-filter { background-color: #34495e; color: white; padding: 10px 20px; font-size: 15px; border-radius: 5px; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px;}
         .btn-filter:hover { background-color: #2c3e50; }
 
-        .search-box { padding: 8px 12px; border: 1px solid #ccc; border-radius: 5px; width: 200px; font-size: 14px; }
+        .search-box { padding: 10px 12px; border: 1px solid #ccc; border-radius: 5px; width: 250px; font-size: 14px; }
 
         /* --- 表格樣式 --- */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; } /* 固定佈局確保滿版效果 */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
         th { background-color: #2c3e50; color: white; padding: 12px; text-align: center; white-space: nowrap; border: 1px solid #ddd;}
         td { padding: 8px; border: 1px solid #ddd; text-align: center; vertical-align: middle; }
         tr:nth-child(even) { background-color: #fcfcfc; }
 
         /* --- 狀態欄位滿版特殊處理 --- */
         td.status-cell {
-            padding: 0 !important; /* 移除內距 */
-            height: 50px; /* 設定高度確保一致 */
+            padding: 0 !important; 
+            height: 60px; /* 稍微加高以容納大字體 */
             vertical-align: middle;
         }
         
-        /* 狀態標籤 (現在是滿版區塊) */
+        /* 狀態標籤 (需求2: 文字加大) */
         .badge { 
             display: flex; 
             width: 100%; 
@@ -41,25 +62,24 @@
             align-items: center; 
             justify-content: center;
             color: white; 
-            font-size: 14px; 
+            font-size: 18px; /* 加大字體 */
             font-weight: bold; 
             text-decoration: none;
-            /* 移除圓角以填滿 */
             border-radius: 0; 
+            letter-spacing: 1px;
         }
         
-        .st-new { background-color: #95a5a6; } /* 新建立 (灰) */
-        .st-pur { background-color: #17a2b8; } /* 已填PUR (藍) */
-        .st-sap { background-color: #6f42c1; } /* 已填SAP (紫) */
-        .st-ordered { background-color: #28a745; } /* 已下單 (綠) */
-        .st-cancel { background-color: #d63031; } /* 採購取消 (紅) - 需求5 */
+        .st-new { background-color: #95a5a6; } 
+        .st-pur { background-color: #17a2b8; } 
+        .st-sap { background-color: #6f42c1; } 
+        .st-ordered { background-color: #28a745; } 
+        .st-cancel { background-color: #d63031; } 
 
-        /* 取消狀態的整列樣式 */
         .row-cancelled { color: #aaa; background-color: #f0f0f0; }
         .row-cancelled strong { text-decoration: line-through; }
         .row-cancelled .timestamp { color: #bbb; }
 
-        /* --- 操作按鈕群 (強制橫排) --- */
+        /* --- 操作按鈕群 --- */
         .action-btn-group {
             display: flex;
             flex-direction: row; 
@@ -83,7 +103,7 @@
 
         .timestamp { display: block; font-size: 11px; color: #888; margin-top: 2px; text-decoration: none;}
 
-        /* --- Tooltip (懸浮紀錄) --- */
+        /* --- Tooltip --- */
         .tooltip-container { position: relative; display: inline-block; cursor: pointer; color: #555; font-size: 18px; }
         .tooltip-container .tooltip-text {
             visibility: hidden; width: 320px; background-color: #333; color: #fff; text-align: left;
@@ -98,29 +118,34 @@
         }
         .tooltip-container:hover .tooltip-text { visibility: visible; opacity: 1; }
 
-        /* --- Modal (置中彈跳視窗) --- */
+        /* --- Modal --- */
         .modal-overlay {
             display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
             overflow: auto; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center;
         }
         .modal-box {
-            background-color: #fefefe; margin: auto; padding: 25px; border-radius: 8px; width: 400px;
+            background-color: #fefefe; margin: auto; padding: 25px; border-radius: 8px; width: 500px; /* 加寬一點 */
             box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: fadeIn 0.3s;
         }
         @keyframes fadeIn { from {opacity: 0; transform: translateY(-20px);} to {opacity: 1; transform: translateY(0);} }
         
-        .modal-title { margin-top: 0; color: #333; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; font-weight: bold;}
-        .modal-body { margin-bottom: 20px; font-size: 15px; line-height: 1.6; color: #444;}
-        .modal-footer { text-align: right; }
+        .modal-title { margin-top: 0; color: #333; font-size: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;}
+        .modal-body { margin-bottom: 20px; font-size: 15px; line-height: 1.6; color: #444; max-height: 60vh; overflow-y: auto;} /* 內容太長可捲動 */
+        .modal-footer { text-align: right; border-top: 1px solid #eee; padding-top: 15px;}
         
-        .modal-input, .modal-select { width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;}
-        .modal-label { font-weight: bold; color: #555; font-size: 13px; }
+        .modal-input, .modal-select { width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;}
+        .modal-label { font-weight: bold; color: #555; font-size: 14px; }
         
-        .btn-cancel-modal { background: #95a5a6; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
-        .btn-confirm-modal { background: #2980b9; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        .btn-cancel-modal { background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+        .btn-confirm-modal { background: #2980b9; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
         .btn-confirm-modal:hover { background: #2471a3; }
-        .btn-danger-modal { background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        .btn-danger-modal { background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
         .btn-danger-modal:hover { background: #c0392b; }
+
+        /* 批量新增的小按鈕 */
+        .batch-btn-group { display: flex; gap: 5px; }
+        .btn-batch-add { background: #16a085; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;}
+        .btn-batch-add:hover { background: #1abc9c; }
 
         .active-filter-tag { background: #dff9fb; color: #22a6b3; padding: 5px 10px; border-radius: 15px; font-size: 12px; margin-left: 10px; display: none;}
     </style>
@@ -129,14 +154,17 @@
 
 <div class="container">
     <div class="header-section">
-        <div class="toolbar-left">
-            <h2>📦 中區 QIAGEN 採購流程進度表</h2>
-            <button class="btn-add" onclick="openModal('add')">➕ 新增採購</button>
-            
-            <button class="btn-filter" onclick="openModal('filter')">⚡ 篩選條件</button>
-            <span id="activeFilterDisplay" class="active-filter-tag"></span>
-            
-            <input type="text" id="searchInput" class="search-box" placeholder="🔎 搜尋單號..." onkeyup="renderTable()">
+        <h2 class="header-title">📦 中區 QIAGEN 採購流程進度表</h2>
+        
+        <div class="toolbar-row">
+            <div class="toolbar-left">
+                <button class="btn-add" onclick="openModal('add')">➕ 新增採購</button>
+                <button class="btn-filter" onclick="openModal('filter')">⚡ 篩選條件</button>
+                <span id="activeFilterDisplay" class="active-filter-tag"></span>
+            </div>
+            <div class="toolbar-right">
+                <input type="text" id="searchInput" class="search-box" placeholder="🔎 搜尋單號..." onkeyup="renderTable()">
+            </div>
         </div>
     </div>
 
@@ -145,12 +173,12 @@
             <tr>
                 <th style="width: 100px;">建立日期</th>
                 <th style="width: 50px;">紀錄</th>
-                <th style="width: 120px;">訂單/庫存編號</th>
+                <th style="width: 140px;">訂單/庫存編號</th>
                 <th>PUR 單號資訊</th>
                 <th>SAP 單號資訊</th>
                 <th>最終下單確認</th>
-                <th style="width: 100px;">狀態</th>
-                <th style="width: 220px;">執行操作</th>
+                <th style="width: 120px;">狀態</th>
+                <th style="width: 240px;">執行操作</th>
             </tr>
         </thead>
         <tbody id="tableBody">
@@ -160,7 +188,14 @@
 
 <div id="customModal" class="modal-overlay">
     <div class="modal-box">
-        <h3 id="modalTitle" class="modal-title">標題</h3>
+        <h3 id="modalTitle" class="modal-title">
+            <span>標題</span>
+            <div id="batchBtnContainer" class="batch-btn-group" style="display:none;">
+                <button class="btn-batch-add" onclick="addBatchInputs(1)">+1</button>
+                <button class="btn-batch-add" onclick="addBatchInputs(5)">+5</button>
+                <button class="btn-batch-add" onclick="addBatchInputs(10)">+10</button>
+            </div>
+        </h3>
         <div id="modalBody" class="modal-body"></div>
         <div class="modal-footer">
             <button class="btn-cancel-modal" onclick="closeModal()">取消</button>
@@ -196,11 +231,10 @@
     let filterYear = "All";
     let filterStatus = "All";
 
-    // helper
     function getDateStr() { const now = new Date(); return `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')}`; }
     function getTimeStr() { const now = new Date(); return `${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`; }
 
-    // --- 渲染表格 (核心) ---
+    // --- 渲染表格 ---
     function renderTable() {
         const tbody = document.getElementById('tableBody');
         const searchVal = document.getElementById('searchInput').value.toUpperCase();
@@ -220,12 +254,10 @@
             if (filterStatus !== "All" && item.status !== filterStatus) return;
             if (filterYear !== "All" && !item.createDate.startsWith(filterYear)) return;
 
-            // 樣式判斷
             let isCancelled = (item.status === "採購取消");
             let rowClass = isCancelled ? "row-cancelled" : "";
             let badgeClass = "";
             
-            // 需求 5: 採購取消 紅色底
             switch(item.status) {
                 case "新建立": badgeClass = "st-new"; break;
                 case "已填PUR": badgeClass = "st-pur"; break;
@@ -235,15 +267,11 @@
                 default: badgeClass = "st-new";
             }
 
-            // --- 按鈕邏輯 ---
             let buttonsHtml = "";
-
             if (isCancelled) {
-                // 需求 2: 恢復採購 改用 Modal (在 openModal 處理)
                 buttonsHtml = `<div class="action-btn-group"><button class="btn btn-restore" onclick="openModal('restore', ${index})">♻️ 恢復採購</button></div>`;
             } else {
                 let nextActionBtn = "";
-                // 流程按鈕
                 if (item.status === "新建立") {
                     nextActionBtn = `<button class="btn btn-action" onclick="openModal('fillPur', ${index})">填寫 PUR</button>`;
                 } else if (item.status === "已填PUR") {
@@ -251,31 +279,18 @@
                 } else if (item.status === "已填SAP") {
                     nextActionBtn = `<button class="btn btn-final" onclick="openModal('confirmOrder', ${index})">✅ 確認下單</button>`;
                 } else if (item.status === "已下單") {
-                    // 已下單無下一步，顯示流程結束
                     nextActionBtn = `<span style="color:#aaa; font-size:12px; padding:6px;">流程結束</span>`;
                 }
 
-                // 修改按鈕
                 let modifyBtn = `<button class="btn btn-modify" onclick="openModal('modify', ${index})">🛠 修改</button>`;
-                
-                // 取消按鈕 (需求 2: 改用 Modal)
                 let cancelBtn = `<button class="btn btn-cancel-act" onclick="openModal('cancel', ${index})">⛔ 取消</button>`;
 
-                // 需求 3: 狀態為"已下單"時，依然保留 修改功能 和 取消功能
-                // 這裡將 nextActionBtn (可能是"流程結束"字樣) 和 modifyBtn 組合
-                buttonsHtml = `
-                    <div class="action-btn-group">
-                        ${nextActionBtn}
-                        ${modifyBtn}
-                        ${cancelBtn}
-                    </div>
-                `;
+                buttonsHtml = `<div class="action-btn-group">${nextActionBtn}${modifyBtn}${cancelBtn}</div>`;
             }
 
             let logText = item.logs.join("\n");
             let logHtml = `<div class="tooltip-container">📝<span class="tooltip-text">${logText}</span></div>`;
 
-            // 需求 4: 狀態格子加上 class="status-cell"
             const tr = `
                 <tr class="${rowClass}">
                     <td>${item.createDate}</td>
@@ -292,9 +307,10 @@
         });
     }
 
-    // --- Modal 控制中心 (需求 2: 全部改用 Modal) ---
+    // --- Modal 控制 ---
     const modal = document.getElementById('customModal');
-    const modalTitle = document.getElementById('modalTitle');
+    const modalTitle = document.getElementById('modalTitle').querySelector('span'); // 抓 span 標題文字
+    const batchBtnContainer = document.getElementById('batchBtnContainer'); // 抓按鈕區
     const modalBody = document.getElementById('modalBody');
     const confirmBtn = document.getElementById('modalConfirmBtn');
 
@@ -304,24 +320,44 @@
         modal.style.display = "flex";
         let item = (index !== undefined) ? mockData[index] : null;
 
-        // 重置按鈕預設樣式
         confirmBtn.style.display = "inline-block";
         confirmBtn.className = "btn-confirm-modal";
+        
+        // 預設隱藏批量按鈕
+        batchBtnContainer.style.display = "none";
 
         if (action === 'add') {
             modalTitle.innerText = "新增採購訂單";
+            // 需求 3: 顯示右上角 +1 +5 +10 按鈕
+            batchBtnContainer.style.display = "flex"; 
+
             modalBody.innerHTML = `
-                <div class="modal-label">訂單編號 / 備庫存編號：</div>
-                <input type="text" id="mInput" class="modal-input" placeholder="例如：A2026-001">
+                <div class="modal-label">請輸入訂單編號 / 備庫存編號：</div>
+                <div id="batchInputArea">
+                    <input type="text" class="modal-input batch-field" placeholder="例如：A2026-001">
+                </div>
             `;
             confirmBtn.innerText = "確認新增";
             confirmBtn.onclick = () => {
-                const val = document.getElementById('mInput').value;
-                if(val) { addNewOrder(val); closeModal(); }
+                // 需求 3: 批量新增邏輯
+                const inputs = document.querySelectorAll('.batch-field');
+                let addedCount = 0;
+                // 反向遍歷，讓第一筆輸入的顯示在表格最上面 (因為 addNewOrder 是 unshift)
+                for (let i = inputs.length - 1; i >= 0; i--) {
+                    let val = inputs[i].value.trim();
+                    if (val) { // 自動過濾空白
+                        addNewOrder(val);
+                        addedCount++;
+                    }
+                }
+                if(addedCount === 0) {
+                     alert("請至少輸入一筆資料！");
+                     return;
+                }
+                closeModal();
             };
 
         } else if (action === 'cancel') {
-            // 需求 2: 取消採購的確認視窗
             modalTitle.innerText = "確認取消";
             modalBody.innerHTML = `
                 <div style="color: #c0392b; font-weight: bold; margin-bottom: 10px;">⚠️ 您確定要取消這筆採購嗎？</div>
@@ -329,14 +365,10 @@
                 <div style="font-size:12px; margin-top:5px; color:#666;">(取消後文字將會加上刪除線，且狀態變為紅色)</div>
             `;
             confirmBtn.innerText = "確認取消";
-            confirmBtn.className = "btn-danger-modal"; // 紅色按鈕
-            confirmBtn.onclick = () => {
-                cancelOrder(index);
-                closeModal();
-            };
+            confirmBtn.className = "btn-danger-modal";
+            confirmBtn.onclick = () => { cancelOrder(index); closeModal(); };
 
         } else if (action === 'restore') {
-            // 需求 2: 恢復採購的確認視窗
             modalTitle.innerText = "確認恢復";
             modalBody.innerHTML = `
                 <div style="color: #27ae60; font-weight: bold; margin-bottom: 10px;">♻️ 您確定要恢復這筆採購嗎？</div>
@@ -344,42 +376,25 @@
                 <div style="font-size:12px; margin-top:5px; color:#666;">(系統將自動判斷恢復到原本的進度狀態)</div>
             `;
             confirmBtn.innerText = "恢復採購";
-            confirmBtn.onclick = () => {
-                restoreOrder(index);
-                closeModal();
-            };
+            confirmBtn.onclick = () => { restoreOrder(index); closeModal(); };
 
         } else if (action === 'confirmOrder') {
             modalTitle.innerText = "最終確認";
-            modalBody.innerHTML = `
-                <div style="text-align:center; padding: 10px; font-size:16px;">
-                    確定訂單 <b>${item.id}</b> 已向原廠完成下單？<br>
-                    <span style="font-size:12px; color:red;">(此動作將標記流程為已完成)</span>
-                </div>
-            `;
+            modalBody.innerHTML = `<div style="text-align:center; padding: 10px; font-size:16px;">確定訂單 <b>${item.id}</b> 已向原廠完成下單？<br><span style="font-size:12px; color:red;">(此動作將標記流程為已完成)</span></div>`;
             confirmBtn.innerText = "確認已下單";
-            confirmBtn.onclick = () => {
-                completeOrder(index);
-                closeModal();
-            };
+            confirmBtn.onclick = () => { completeOrder(index); closeModal(); };
 
         } else if (action === 'fillPur') {
             modalTitle.innerText = `填寫 PUR 單號`;
             modalBody.innerHTML = `<div class="modal-label">PUR 單號：</div><input type="text" id="mInput" class="modal-input" value="${item.pur.val}">`;
             confirmBtn.innerText = "儲存";
-            confirmBtn.onclick = () => {
-                const val = document.getElementById('mInput').value;
-                if(val) { updateStep(index, 'pur', val); closeModal(); }
-            };
+            confirmBtn.onclick = () => { const val = document.getElementById('mInput').value; if(val) { updateStep(index, 'pur', val); closeModal(); } };
 
         } else if (action === 'fillSap') {
             modalTitle.innerText = `填寫 SAP 單號`;
             modalBody.innerHTML = `<div class="modal-label">SAP 單號：</div><input type="text" id="mInput" class="modal-input" value="${item.sap.val}">`;
             confirmBtn.innerText = "儲存";
-            confirmBtn.onclick = () => {
-                const val = document.getElementById('mInput').value;
-                if(val) { updateStep(index, 'sap', val); closeModal(); }
-            };
+            confirmBtn.onclick = () => { const val = document.getElementById('mInput').value; if(val) { updateStep(index, 'sap', val); closeModal(); } };
 
         } else if (action === 'modify') {
             modalTitle.innerText = "修改訂單資料";
@@ -389,10 +404,7 @@
                 <div class="modal-label">SAP 單號：</div> <input type="text" id="modSap" class="modal-input" value="${item.sap.val}">
             `;
             confirmBtn.innerText = "儲存修改";
-            confirmBtn.onclick = () => {
-                saveModification(index, document.getElementById('modId').value, document.getElementById('modPur').value, document.getElementById('modSap').value);
-                closeModal();
-            };
+            confirmBtn.onclick = () => { saveModification(index, document.getElementById('modId').value, document.getElementById('modPur').value, document.getElementById('modSap').value); closeModal(); };
 
         } else if (action === 'filter') {
             modalTitle.innerText = "篩選條件設定";
@@ -423,6 +435,20 @@
                 renderTable(); 
                 closeModal();
             };
+        }
+    }
+
+    // 需求 3: 動態增加輸入框
+    function addBatchInputs(count) {
+        const area = document.getElementById('batchInputArea');
+        for(let i=0; i<count; i++) {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'modal-input batch-field';
+            input.placeholder = '例如：A2026-001';
+            // 加一點動畫效果
+            input.style.animation = "fadeIn 0.3s";
+            area.appendChild(input);
         }
     }
 
@@ -482,18 +508,10 @@
     function restoreOrder(index) {
         const item = mockData[index];
         const timeStr = getTimeStr();
-        
-        // 智慧判斷恢復狀態
-        if (item.ordered.val === "已下單") {
-            item.status = "已下單";
-        } else if (item.sap.val !== "") {
-            item.status = "已填SAP";
-        } else if (item.pur.val !== "") {
-            item.status = "已填PUR";
-        } else {
-            item.status = "新建立";
-        }
-
+        if (item.ordered.val === "已下單") { item.status = "已下單"; }
+        else if (item.sap.val !== "") { item.status = "已填SAP"; }
+        else if (item.pur.val !== "") { item.status = "已填PUR"; }
+        else { item.status = "新建立"; }
         item.logs.push(`${timeStr} - ${CURRENT_USER} - 恢復採購 (狀態: ${item.status})`);
         renderTable();
     }
