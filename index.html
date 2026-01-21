@@ -154,15 +154,147 @@
         getTimeStr: () => { const now = new Date(); return `${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`; }
     };
 
-    /**
-     * MODULE 2: Data Service (資料層 - 未來替換此處為 Firebase/Google Sheet)
+   /**
+     * MODULE 2: Data Service (已連結 Google Sheet)
      */
     const DataService = {
-        // 模擬資料庫
-        _data: [
-            { id: "A2024-001", createDate: "2024/01/20", pur: {val:"", time:""}, sap: {val:"", time:""}, ordered: {val:"", time:""}, status: "新建立", logs: ["2024/01/20 09:00 - Admin - 建立訂單"] },
-            { id: "B2025-002", createDate: "2025/01/21", pur: {val:"P-888", time:"01/21 10:00"}, sap: {val:"", time:""}, ordered: {val:"", time:""}, status: "已填PUR", logs: ["2025/01/21 10:00 - Admin - 填寫PUR"] }
-        ],
+        // 本地暫存資料 (用來快速渲染搜尋)
+        _localData: [],
+
+        // 初始化：從後端讀取資料
+        loadFromBackend: (callback) => {
+            // 顯示載入中 (可選)
+            document.getElementById('tableBody').innerHTML = '<tr><td colspan="8">資料讀取中...</td></tr>';
+            
+            google.script.run.withSuccessHandler((response) => {
+                DataService._localData = response; // 更新本地暫存
+                if (callback) callback();
+            }).getPurchaseList(); // 呼叫後端函數
+        },
+
+        // 取得所有資料 (回傳本地暫存)
+        getAll: () => DataService._localData,
+
+        // --- 通用儲存處理器 ---
+        // 所有的 新增/修改/刪除 最終都呼叫這個函數同步回 Google Sheet
+        _syncToSheet: (item, onSuccess) => {
+            google.script.run.withSuccessHandler(() => {
+                console.log("Synced to Sheet:", item.id);
+                if (onSuccess) onSuccess();
+            }).savePurchaseOrder(item);
+        },
+
+        // 新增資料
+        add: (id) => {
+            const timeStr = Utils.getTimeStr();
+            const newRow = {
+                id: id, createDate: Utils.getDateStr(),
+                pur: { val: "", time: "" }, sap: { val: "", time: "" }, ordered: { val: "", time: "" },
+                status: Config.status.NEW,
+                logs: [`${timeStr} - ${Config.currentUser} - 建立訂單 (${id})`]
+            };
+            
+            // 1. 先更新本地 (讓使用者覺得很快)
+            DataService._localData.unshift(newRow);
+            AppController.renderTable();
+            
+            // 2. 背景寫入 Sheet
+            DataService._syncToSheet(newRow);
+        },
+
+        // 更新欄位 (PUR/SAP)
+        updateField: (index, field, val) => {
+            const item = DataService._localData[index];
+            const timeStr = Utils.getTimeStr();
+            
+            if(field === 'pur') {
+                item.pur.val = val; item.pur.time = timeStr;
+                item.status = Config.status.PUR_FILLED;
+                item.logs.push(`${timeStr} - ${Config.currentUser} - 填寫PUR: ${val}`);
+            } else if (field === 'sap') {
+                item.sap.val = val; item.sap.time = timeStr;
+                item.status = Config.status.SAP_FILLED;
+                item.logs.push(`${timeStr} - ${Config.currentUser} - 填寫SAP: ${val}`);
+            }
+            
+            DataService._syncToSheet(item); // 同步
+        },
+
+        // 確認下單
+        confirmOrder: (index) => {
+            const item = DataService._localData[index];
+            const timeStr = Utils.getTimeStr();
+            item.ordered.val = "已下單";
+            item.ordered.time = timeStr;
+            item.status = Config.status.ORDERED;
+            item.logs.push(`${timeStr} - ${Config.currentUser} - 確認已下單 (結案)`);
+            
+            DataService._syncToSheet(item); // 同步
+        },
+
+        // 取消下單
+        revertOrder: (index) => {
+            const item = DataService._localData[index];
+            const timeStr = Utils.getTimeStr();
+            
+            item.ordered.val = "";
+            item.ordered.time = "";
+            
+            if (item.sap.val) item.status = Config.status.SAP_FILLED;
+            else if (item.pur.val) item.status = Config.status.PUR_FILLED;
+            else item.status = Config.status.NEW;
+
+            item.logs.push(`${timeStr} - ${Config.currentUser} - 取消下單 (退回流程)`);
+            
+            DataService._syncToSheet(item); // 同步
+        },
+
+        // 修改資料
+        modify: (index, newId, newPur, newSap) => {
+            const item = DataService._localData[index];
+            const timeStr = Utils.getTimeStr();
+            let changes = [];
+            
+            // 若 ID 改變，邏輯會比較複雜(通常不建議改ID)，這裡簡單處理：直接存新的一筆並覆蓋
+            // 但因為後端是用 ID 判斷，如果改 ID 會變成「新增」一筆，舊的還在。
+            // 為了簡化，建議只改內容，或是在後端處理 ID 變更 (需要傳 oldId)
+            // 這裡我們先假設 ID 不變，或者後端邏輯能接受新增
+            
+            if(item.id !== newId) { changes.push(`ID: ${item.id}->${newId}`); item.id = newId; }
+            if(item.pur.val !== newPur) { changes.push(`PUR: ${item.pur.val}->${newPur}`); item.pur.val = newPur; }
+            if(item.sap.val !== newSap) { changes.push(`SAP: ${item.sap.val}->${newSap}`); item.sap.val = newSap; }
+            
+            if(changes.length > 0) {
+                item.logs.push(`${timeStr} - ${Config.currentUser} - 修改資料: ${changes.join(", ")}`);
+                DataService._syncToSheet(item); // 同步
+            }
+        },
+
+        // 刪除 (軟刪除)
+        delete: (index) => {
+            const item = DataService._localData[index];
+            const timeStr = Utils.getTimeStr();
+            item.status = Config.status.CANCELLED;
+            item.logs.push(`${timeStr} - ${Config.currentUser} - 刪除 (採購取消)`);
+            
+            DataService._syncToSheet(item); // 同步
+        },
+
+        // 恢復
+        restore: (index) => {
+            const item = DataService._localData[index];
+            const timeStr = Utils.getTimeStr();
+            
+            if (item.ordered.val === "已下單") item.status = Config.status.ORDERED;
+            else if (item.sap.val) item.status = Config.status.SAP_FILLED;
+            else if (item.pur.val) item.status = Config.status.PUR_FILLED;
+            else item.status = Config.status.NEW;
+
+            item.logs.push(`${timeStr} - ${Config.currentUser} - 恢復採購`);
+            
+            DataService._syncToSheet(item); // 同步
+        }
+    };,
 
         // 取得資料
         getAll: () => DataService._data,
@@ -259,15 +391,17 @@
     };
 
     /**
-     * MODULE 3: App Controller (邏輯控制層)
+     * MODULE 3: App Controller
      */
     const AppController = {
         filterYear: 'All',
         filterStatus: 'All',
         
-        // 初始化
+        // 初始化：改成呼叫 loadFromBackend
         init: () => {
-            AppController.renderTable();
+            DataService.loadFromBackend(() => {
+                AppController.renderTable(); // 資料抓完後才渲染
+            });
         },
 
         // 渲染表格
@@ -503,3 +637,4 @@
 
 </body>
 </html>
+
