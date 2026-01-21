@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>採購流程進度追蹤 - 完整版</title>
+    <title>採購流程進度追蹤 - 進階版</title>
     <style>
         body { font-family: "Microsoft JhengHei", Arial, sans-serif; background-color: #f4f7f6; padding: 20px; font-size: 14px;}
-        .container { min-width: 1200px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow-x: auto; }
+        .container { min-width: 1200px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding-bottom: 50px;}
         
         /* 頂部操作區 */
         .header-section { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 10px; }
@@ -18,9 +18,6 @@
         th { background-color: #2c3e50; color: white; padding: 10px; text-align: center; white-space: nowrap; }
         td { padding: 8px; border: 1px solid #ddd; text-align: center; vertical-align: middle; }
         tr:nth-child(even) { background-color: #fcfcfc; }
-
-        /* 紀錄欄位樣式 (讓字小一點，靠左對齊) */
-        .log-cell { text-align: left; font-size: 12px; color: #555; max-width: 250px; line-height: 1.4; }
         
         /* 狀態標籤 */
         .badge { padding: 4px 8px; border-radius: 4px; color: white; font-size: 12px; font-weight: bold; display: inline-block;}
@@ -29,15 +26,49 @@
         .st-sap { background-color: #6f42c1; } /* 已填SAP */
         .st-ordered { background-color: #28a745; } /* 已下單 */
 
-        /* 操作按鈕 */
-        .btn { cursor: pointer; border: none; padding: 5px 10px; border-radius: 3px; font-size: 13px; margin: 2px; }
-        .btn-action { background-color: #3498db; color: white; }
+        /* 按鈕樣式 */
+        .btn { cursor: pointer; border: none; padding: 5px 10px; border-radius: 3px; font-size: 13px; margin: 2px; color: white;}
+        .btn-action { background-color: #3498db; }  /* 藍色：下一步 */
         .btn-action:hover { background-color: #2980b9; }
-        .btn-final { background-color: #27ae60; color: white; }
+        .btn-final { background-color: #27ae60; }   /* 綠色：完成 */
         .btn-final:hover { background-color: #219150; }
+        .btn-modify { background-color: #f39c12; }  /* 橘色：修改 */
+        .btn-modify:hover { background-color: #d68910; }
 
         /* 時間戳記小字 */
         .timestamp { display: block; font-size: 11px; color: #888; margin-top: 2px; }
+
+        /* --- Tooltip (懸浮紀錄) 樣式 --- */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            color: #555;
+            font-size: 16px;
+        }
+        .tooltip-container .tooltip-text {
+            visibility: hidden;
+            width: 300px;
+            background-color: #333;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 10;
+            top: -50%; 
+            right: 120%; /* 顯示在左側，避免被螢幕切掉 */
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre-wrap; /* 保留換行 */
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+        }
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -64,13 +95,13 @@
         <thead>
             <tr>
                 <th style="width: 100px;">建立日期</th>
+                <th style="width: 50px;">紀錄</th>
                 <th style="width: 120px;">訂單/庫存編號</th>
                 <th>PUR 單號資訊</th>
                 <th>SAP 單號資訊</th>
                 <th>最終下單確認</th>
-                <th style="width: 280px;">📝 操作紀錄 (Log)</th>
                 <th style="width: 80px;">狀態</th>
-                <th style="width: 120px;">執行操作</th>
+                <th style="width: 160px;">執行操作</th>
             </tr>
         </thead>
         <tbody id="tableBody">
@@ -80,7 +111,6 @@
 
 <script>
     // --- 模擬資料庫結構 ---
-    // status: "新建立" -> "已填PUR" -> "已填SAP" -> "已下單"
     let mockData = [
         { 
             id: "A2024-001", 
@@ -93,17 +123,21 @@
         }
     ];
 
-    // 模擬當前使用者 (未來接上 Google 後會抓 Session.getActiveUser())
     const CURRENT_USER = "測試員";
 
-    // 1. 取得現在時間字串
-    function getNowStr() {
+    // 1. 取得現在日期 (YYYY/MM/DD)
+    function getDateStr() {
         const now = new Date();
-        // 格式: MM/dd HH:mm
+        return `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')}`;
+    }
+
+    // 2. 取得完整時間字串 (用於Log與操作時間)
+    function getTimeStr() {
+        const now = new Date();
         return `${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
     }
 
-    // 2. 渲染表格
+    // 3. 渲染表格
     function renderTable() {
         const tbody = document.getElementById('tableBody');
         const filter = document.getElementById('statusFilter').value;
@@ -112,31 +146,40 @@
         mockData.forEach((item, index) => {
             if (filter !== "All" && item.status !== filter) return;
 
-            // 狀態顏色判斷
+            // 狀態顏色與主要按鈕
             let badgeClass = "st-new";
-            let actionBtn = "";
+            let mainBtn = "";
 
-            // 邏輯狀態機
             if (item.status === "新建立") {
                 badgeClass = "st-new";
-                actionBtn = `<button class="btn btn-action" onclick="updateStep(${index}, 'pur')">填寫 PUR</button>`;
+                mainBtn = `<button class="btn btn-action" onclick="updateStep(${index}, 'pur')">填寫 PUR</button>`;
             } else if (item.status === "已填PUR") {
                 badgeClass = "st-pur";
-                actionBtn = `<button class="btn btn-action" onclick="updateStep(${index}, 'sap')">填寫 SAP</button>`;
+                mainBtn = `<button class="btn btn-action" onclick="updateStep(${index}, 'sap')">填寫 SAP</button>`;
             } else if (item.status === "已填SAP") {
                 badgeClass = "st-sap";
-                actionBtn = `<button class="btn btn-final" onclick="updateStep(${index}, 'order')">✅ 確認下單</button>`;
+                mainBtn = `<button class="btn btn-final" onclick="updateStep(${index}, 'order')">✅ 確認下單</button>`;
             } else if (item.status === "已下單") {
                 badgeClass = "st-ordered";
-                actionBtn = `<span style="color:#aaa">流程結束</span>`;
+                mainBtn = `<span style="color:#aaa; font-size:12px;">無動作</span>`;
             }
 
-            // 組合 Log 顯示 (換行顯示)
-            let logHtml = item.logs.join("<br>");
+            // 修改按鈕 (隨時都存在，方便修正錯誤)
+            let modifyBtn = `<button class="btn btn-modify" onclick="modifyData(${index})">🛠 修改</button>`;
+
+            // 組合 Log Tooltip
+            let logText = item.logs.join("\n"); // 用換行符號連接
+            let logHtml = `
+                <div class="tooltip-container">
+                    📝
+                    <span class="tooltip-text">${logText}</span>
+                </div>
+            `;
 
             const tr = `
                 <tr>
                     <td>${item.createDate}</td>
+                    <td>${logHtml}</td>
                     <td><strong>${item.id}</strong></td>
                     
                     <td>
@@ -154,70 +197,112 @@
                         ${item.ordered.time ? `<span class="timestamp">(${item.ordered.time})</span>` : ''}
                     </td>
 
-                    <td class="log-cell">${logHtml}</td>
-
                     <td><span class="badge ${badgeClass}">${item.status}</span></td>
-
-                    <td>${actionBtn}</td>
+                    
+                    <td>
+                        ${mainBtn}
+                        ${modifyBtn}
+                    </td>
                 </tr>
             `;
             tbody.innerHTML += tr;
         });
     }
 
-    // 3. 新增訂單
+    // 4. 新增訂單
     function addNewOrder() {
         const orderId = prompt("請輸入新的「訂單編號」或「備庫存編號」：");
         if (!orderId) return;
 
-        const nowStr = getNowStr();
+        const dateStr = getDateStr(); // 只有日期
+        const timeStr = getTimeStr(); // 含時間
+        
         const newRow = {
             id: orderId,
-            createDate: nowStr,
+            createDate: dateStr, 
             pur: { val: "", time: "" },
             sap: { val: "", time: "" },
             ordered: { val: "", time: "" },
             status: "新建立",
-            logs: [`${nowStr} - ${CURRENT_USER} - 建立訂單`]
+            logs: [`${timeStr} - ${CURRENT_USER} - 建立訂單 (${orderId})`]
         };
         
-        // 新增到最前面
         mockData.unshift(newRow);
         renderTable();
     }
 
-    // 4. 更新流程步驟
+    // 5. 更新流程步驟
     function updateStep(index, type) {
         const item = mockData[index];
-        const nowStr = getNowStr();
+        const timeStr = getTimeStr();
 
         if (type === 'pur') {
             const inputVal = prompt(`訂單 [${item.id}]\n請輸入 PUR 單號：`);
             if (!inputVal) return;
 
             item.pur.val = inputVal;
-            item.pur.time = nowStr;
+            item.pur.time = timeStr;
             item.status = "已填PUR";
-            item.logs.push(`${nowStr} - ${CURRENT_USER} - 填寫PUR: ${inputVal}`);
+            item.logs.push(`${timeStr} - ${CURRENT_USER} - 填寫PUR: ${inputVal}`);
 
         } else if (type === 'sap') {
             const inputVal = prompt(`訂單 [${item.id}]\n請輸入 SAP 單號：`);
             if (!inputVal) return;
 
             item.sap.val = inputVal;
-            item.sap.time = nowStr;
+            item.sap.time = timeStr;
             item.status = "已填SAP";
-            item.logs.push(`${nowStr} - ${CURRENT_USER} - 填寫SAP: ${inputVal}`);
+            item.logs.push(`${timeStr} - ${CURRENT_USER} - 填寫SAP: ${inputVal}`);
 
         } else if (type === 'order') {
             if (!confirm(`確認訂單 [${item.id}] 已向原廠完成下單？`)) return;
 
-            item.ordered.val = "已下單"; // 這裡顯示文字，或者您想填入原廠單號也可以
-            item.ordered.time = nowStr;
+            item.ordered.val = "已下單";
+            item.ordered.time = timeStr;
             item.status = "已下單";
-            item.logs.push(`${nowStr} - ${CURRENT_USER} - 點選已下單`);
+            item.logs.push(`${timeStr} - ${CURRENT_USER} - 點選已下單 (完成)`);
         }
 
+        renderTable();
+    }
+
+    // 6. 修改資料功能 (修正錯誤用)
+    function modifyData(index) {
+        const item = mockData[index];
+        const timeStr = getTimeStr();
+
+        // 簡單的 Prompt 流程，詢問要改什麼
+        // 實際應用可以使用更漂亮的 Modal，這裡用 Prompt 模擬
+        let choice = prompt(
+            `您要修改哪項資料？(請輸入數字)\n\n` +
+            `1. 訂單編號 (目前: ${item.id})\n` +
+            `2. PUR 單號 (目前: ${item.pur.val || '無'})\n` +
+            `3. SAP 單號 (目前: ${item.sap.val || '無'})\n`
+        );
+
+        if (choice === '1') {
+            let newVal = prompt("請輸入新的訂單編號：", item.id);
+            if (newVal && newVal !== item.id) {
+                item.logs.push(`${timeStr} - ${CURRENT_USER} - 修正ID: ${item.id} -> ${newVal}`);
+                item.id = newVal;
+            }
+        } else if (choice === '2') {
+            // 只有當 PUR 已經填過或是正在這個階段才能改
+            let defaultVal = item.pur.val;
+            let newVal = prompt("請輸入修正後的 PUR 單號：", defaultVal);
+            if (newVal !== null && newVal !== defaultVal) {
+                 item.logs.push(`${timeStr} - ${CURRENT_USER} - 修正PUR: ${defaultVal} -> ${newVal}`);
+                 item.pur.val = newVal;
+            }
+        } else if (choice === '3') {
+            let defaultVal = item.sap.val;
+            let newVal = prompt("請輸入修正後的 SAP 單號：", defaultVal);
+             if (newVal !== null && newVal !== defaultVal) {
+                 item.logs.push(`${timeStr} - ${CURRENT_USER} - 修正SAP: ${defaultVal} -> ${newVal}`);
+                 item.sap.val = newVal;
+            }
+        }
+        
         renderTable();
     }
 
