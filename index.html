@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>採購流程進度追蹤 - 進階版</title>
+    <title>採購流程進度追蹤 - 視窗優化版</title>
     <style>
         body { font-family: "Microsoft JhengHei", Arial, sans-serif; background-color: #f4f7f6; padding: 20px; font-size: 14px;}
         .container { min-width: 1200px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding-bottom: 50px;}
@@ -28,47 +28,97 @@
 
         /* 按鈕樣式 */
         .btn { cursor: pointer; border: none; padding: 5px 10px; border-radius: 3px; font-size: 13px; margin: 2px; color: white;}
-        .btn-action { background-color: #3498db; }  /* 藍色：下一步 */
+        .btn-action { background-color: #3498db; }  
         .btn-action:hover { background-color: #2980b9; }
-        .btn-final { background-color: #27ae60; }   /* 綠色：完成 */
+        .btn-final { background-color: #27ae60; }   
         .btn-final:hover { background-color: #219150; }
-        .btn-modify { background-color: #f39c12; }  /* 橘色：修改 */
+        .btn-modify { background-color: #f39c12; }  
         .btn-modify:hover { background-color: #d68910; }
 
-        /* 時間戳記小字 */
         .timestamp { display: block; font-size: 11px; color: #888; margin-top: 2px; }
 
-        /* --- Tooltip (懸浮紀錄) 樣式 --- */
+        /* --- Tooltip (懸浮紀錄) 樣式 - 改為顯示在右側 --- */
         .tooltip-container {
             position: relative;
             display: inline-block;
             cursor: pointer;
             color: #555;
-            font-size: 16px;
+            font-size: 18px; /* 圖示大一點 */
         }
         .tooltip-container .tooltip-text {
             visibility: hidden;
-            width: 300px;
+            width: 320px;
             background-color: #333;
             color: #fff;
             text-align: left;
             border-radius: 6px;
             padding: 10px;
+            
+            /* 關鍵定位修改：顯示在右側 */
             position: absolute;
-            z-index: 10;
-            top: -50%; 
-            right: 120%; /* 顯示在左側，避免被螢幕切掉 */
+            z-index: 100;
+            top: -10px; 
+            left: 130%; /* 把框框推到右邊 */
+            
             opacity: 0;
             transition: opacity 0.3s;
             font-size: 12px;
             line-height: 1.5;
-            white-space: pre-wrap; /* 保留換行 */
-            box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+            white-space: pre-wrap;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+        }
+        /* 增加一個小箭頭指向左邊 */
+        .tooltip-container .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 15px;
+            right: 100%; /* 箭頭在框框左側 */
+            margin-top: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent #333 transparent transparent;
         }
         .tooltip-container:hover .tooltip-text {
             visibility: visible;
             opacity: 1;
         }
+
+        /* --- Modal (置中彈跳視窗) 樣式 --- */
+        .modal-overlay {
+            display: none; /* 預設隱藏 */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5); /* 半透明黑底 */
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-box {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #888;
+            width: 400px; /* 視窗寬度 */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn { from {opacity: 0; transform: translateY(-20px);} to {opacity: 1; transform: translateY(0);} }
+        
+        .modal-title { margin-top: 0; color: #333; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+        .modal-body { margin-bottom: 20px; }
+        .modal-footer { text-align: right; }
+        
+        .modal-input { width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .modal-label { font-weight: bold; color: #555; font-size: 13px; }
+        
+        .btn-cancel { background: #95a5a6; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+        .btn-confirm { background: #2980b9; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        .btn-confirm:hover { background: #2471a3; }
     </style>
 </head>
 <body>
@@ -77,7 +127,7 @@
     <div class="header-section">
         <div>
             <h2>📦 採購流程進度表</h2>
-            <button class="btn-add" onclick="addNewOrder()">➕ 新增一筆採購訂單</button>
+            <button class="btn-add" onclick="openModal('add')">➕ 新增一筆採購訂單</button>
         </div>
         <div>
             <label>篩選：</label>
@@ -109,8 +159,20 @@
     </table>
 </div>
 
+<div id="customModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3 id="modalTitle" class="modal-title">標題</h3>
+        <div id="modalBody" class="modal-body">
+            </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal()">取消</button>
+            <button class="btn-confirm" id="modalConfirmBtn">確認</button>
+        </div>
+    </div>
+</div>
+
 <script>
-    // --- 模擬資料庫結構 ---
+    // --- 模擬資料 ---
     let mockData = [
         { 
             id: "A2024-001", 
@@ -125,19 +187,11 @@
 
     const CURRENT_USER = "測試員";
 
-    // 1. 取得現在日期 (YYYY/MM/DD)
-    function getDateStr() {
-        const now = new Date();
-        return `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')}`;
-    }
+    // 取得時間格式 helper
+    function getDateStr() { const now = new Date(); return `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')}`; }
+    function getTimeStr() { const now = new Date(); return `${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`; }
 
-    // 2. 取得完整時間字串 (用於Log與操作時間)
-    function getTimeStr() {
-        const now = new Date();
-        return `${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-    }
-
-    // 3. 渲染表格
+    // --- 渲染表格 ---
     function renderTable() {
         const tbody = document.getElementById('tableBody');
         const filter = document.getElementById('statusFilter').value;
@@ -146,167 +200,197 @@
         mockData.forEach((item, index) => {
             if (filter !== "All" && item.status !== filter) return;
 
-            // 狀態顏色與主要按鈕
             let badgeClass = "st-new";
             let mainBtn = "";
 
             if (item.status === "新建立") {
                 badgeClass = "st-new";
-                mainBtn = `<button class="btn btn-action" onclick="updateStep(${index}, 'pur')">填寫 PUR</button>`;
+                mainBtn = `<button class="btn btn-action" onclick="openModal('fillPur', ${index})">填寫 PUR</button>`;
             } else if (item.status === "已填PUR") {
                 badgeClass = "st-pur";
-                mainBtn = `<button class="btn btn-action" onclick="updateStep(${index}, 'sap')">填寫 SAP</button>`;
+                mainBtn = `<button class="btn btn-action" onclick="openModal('fillSap', ${index})">填寫 SAP</button>`;
             } else if (item.status === "已填SAP") {
                 badgeClass = "st-sap";
-                mainBtn = `<button class="btn btn-final" onclick="updateStep(${index}, 'order')">✅ 確認下單</button>`;
+                mainBtn = `<button class="btn btn-final" onclick="confirmOrder(${index})">✅ 確認下單</button>`;
             } else if (item.status === "已下單") {
                 badgeClass = "st-ordered";
                 mainBtn = `<span style="color:#aaa; font-size:12px;">無動作</span>`;
             }
 
-            // 修改按鈕 (隨時都存在，方便修正錯誤)
-            let modifyBtn = `<button class="btn btn-modify" onclick="modifyData(${index})">🛠 修改</button>`;
+            let modifyBtn = `<button class="btn btn-modify" onclick="openModal('modify', ${index})">🛠 修改</button>`;
 
-            // 組合 Log Tooltip
-            let logText = item.logs.join("\n"); // 用換行符號連接
-            let logHtml = `
-                <div class="tooltip-container">
-                    📝
-                    <span class="tooltip-text">${logText}</span>
-                </div>
-            `;
+            let logText = item.logs.join("\n");
+            let logHtml = `<div class="tooltip-container">📝<span class="tooltip-text">${logText}</span></div>`;
 
             const tr = `
                 <tr>
                     <td>${item.createDate}</td>
                     <td>${logHtml}</td>
                     <td><strong>${item.id}</strong></td>
-                    
-                    <td>
-                        ${item.pur.val || '--'}
-                        ${item.pur.time ? `<span class="timestamp">(${item.pur.time})</span>` : ''}
-                    </td>
-                    
-                    <td>
-                        ${item.sap.val || '--'}
-                        ${item.sap.time ? `<span class="timestamp">(${item.sap.time})</span>` : ''}
-                    </td>
-
-                    <td>
-                        ${item.ordered.val || '--'}
-                        ${item.ordered.time ? `<span class="timestamp">(${item.ordered.time})</span>` : ''}
-                    </td>
-
+                    <td>${item.pur.val || '--'} ${item.pur.time ? `<span class="timestamp">(${item.pur.time})</span>` : ''}</td>
+                    <td>${item.sap.val || '--'} ${item.sap.time ? `<span class="timestamp">(${item.sap.time})</span>` : ''}</td>
+                    <td>${item.ordered.val || '--'} ${item.ordered.time ? `<span class="timestamp">(${item.ordered.time})</span>` : ''}</td>
                     <td><span class="badge ${badgeClass}">${item.status}</span></td>
-                    
-                    <td>
-                        ${mainBtn}
-                        ${modifyBtn}
-                    </td>
+                    <td>${mainBtn} ${modifyBtn}</td>
                 </tr>
             `;
             tbody.innerHTML += tr;
         });
     }
 
-    // 4. 新增訂單
-    function addNewOrder() {
-        const orderId = prompt("請輸入新的「訂單編號」或「備庫存編號」：");
-        if (!orderId) return;
+    // --- Modal 控制邏輯 ---
+    const modal = document.getElementById('customModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const confirmBtn = document.getElementById('modalConfirmBtn');
 
-        const dateStr = getDateStr(); // 只有日期
-        const timeStr = getTimeStr(); // 含時間
-        
-        const newRow = {
-            id: orderId,
+    function closeModal() {
+        modal.style.display = "none";
+    }
+
+    // 開啟 Modal，根據 action 決定顯示什麼內容
+    function openModal(action, index) {
+        modal.style.display = "flex"; // 設為 flex 讓他置中
+        let item = (index !== undefined) ? mockData[index] : null;
+
+        // 移除舊的 event listener
+        let newBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+        const activeConfirmBtn = newBtn;
+
+        if (action === 'add') {
+            modalTitle.innerText = "新增採購訂單";
+            modalBody.innerHTML = `
+                <div class="modal-label">訂單編號 / 備庫存編號：</div>
+                <input type="text" id="mInput" class="modal-input" placeholder="例如：A2024-001">
+            `;
+            activeConfirmBtn.onclick = () => {
+                const val = document.getElementById('mInput').value;
+                if(val) { addNewOrder(val); closeModal(); }
+            };
+
+        } else if (action === 'fillPur') {
+            modalTitle.innerText = `填寫 PUR 單號 (訂單: ${item.id})`;
+            modalBody.innerHTML = `
+                <div class="modal-label">PUR 單號：</div>
+                <input type="text" id="mInput" class="modal-input" placeholder="請輸入 PUR 單號">
+            `;
+            activeConfirmBtn.onclick = () => {
+                const val = document.getElementById('mInput').value;
+                if(val) { updateStep(index, 'pur', val); closeModal(); }
+            };
+
+        } else if (action === 'fillSap') {
+            modalTitle.innerText = `填寫 SAP 單號 (訂單: ${item.id})`;
+            modalBody.innerHTML = `
+                <div class="modal-label">SAP 單號：</div>
+                <input type="text" id="mInput" class="modal-input" placeholder="請輸入 SAP 單號">
+            `;
+            activeConfirmBtn.onclick = () => {
+                const val = document.getElementById('mInput').value;
+                if(val) { updateStep(index, 'sap', val); closeModal(); }
+            };
+
+        } else if (action === 'modify') {
+            modalTitle.innerText = "修改訂單資料";
+            // 修改時，一次顯示三個欄位方便編輯
+            modalBody.innerHTML = `
+                <div class="modal-label">訂單編號：</div>
+                <input type="text" id="modId" class="modal-input" value="${item.id}">
+                <div class="modal-label">PUR 單號：</div>
+                <input type="text" id="modPur" class="modal-input" value="${item.pur.val}">
+                <div class="modal-label">SAP 單號：</div>
+                <input type="text" id="modSap" class="modal-input" value="${item.sap.val}">
+            `;
+            activeConfirmBtn.onclick = () => {
+                const newId = document.getElementById('modId').value;
+                const newPur = document.getElementById('modPur').value;
+                const newSap = document.getElementById('modSap').value;
+                saveModification(index, newId, newPur, newSap);
+                closeModal();
+            };
+        }
+    }
+
+    // --- 資料操作邏輯 ---
+
+    function addNewOrder(id) {
+        const dateStr = getDateStr();
+        const timeStr = getTimeStr();
+        mockData.unshift({
+            id: id,
             createDate: dateStr, 
             pur: { val: "", time: "" },
             sap: { val: "", time: "" },
             ordered: { val: "", time: "" },
             status: "新建立",
-            logs: [`${timeStr} - ${CURRENT_USER} - 建立訂單 (${orderId})`]
-        };
-        
-        mockData.unshift(newRow);
+            logs: [`${timeStr} - ${CURRENT_USER} - 建立訂單 (${id})`]
+        });
         renderTable();
     }
 
-    // 5. 更新流程步驟
-    function updateStep(index, type) {
+    function updateStep(index, type, val) {
         const item = mockData[index];
         const timeStr = getTimeStr();
 
         if (type === 'pur') {
-            const inputVal = prompt(`訂單 [${item.id}]\n請輸入 PUR 單號：`);
-            if (!inputVal) return;
-
-            item.pur.val = inputVal;
+            item.pur.val = val;
             item.pur.time = timeStr;
             item.status = "已填PUR";
-            item.logs.push(`${timeStr} - ${CURRENT_USER} - 填寫PUR: ${inputVal}`);
-
+            item.logs.push(`${timeStr} - ${CURRENT_USER} - 填寫PUR: ${val}`);
         } else if (type === 'sap') {
-            const inputVal = prompt(`訂單 [${item.id}]\n請輸入 SAP 單號：`);
-            if (!inputVal) return;
-
-            item.sap.val = inputVal;
+            item.sap.val = val;
             item.sap.time = timeStr;
             item.status = "已填SAP";
-            item.logs.push(`${timeStr} - ${CURRENT_USER} - 填寫SAP: ${inputVal}`);
-
-        } else if (type === 'order') {
-            if (!confirm(`確認訂單 [${item.id}] 已向原廠完成下單？`)) return;
-
-            item.ordered.val = "已下單";
-            item.ordered.time = timeStr;
-            item.status = "已下單";
-            item.logs.push(`${timeStr} - ${CURRENT_USER} - 點選已下單 (完成)`);
+            item.logs.push(`${timeStr} - ${CURRENT_USER} - 填寫SAP: ${val}`);
         }
-
         renderTable();
     }
 
-    // 6. 修改資料功能 (修正錯誤用)
-    function modifyData(index) {
+    function confirmOrder(index) {
+        // 確認框還是保留簡單的 confirm 比較快，也可以改成 modal，看您需求
+        if(!confirm("確認此訂單已完成原廠下單？")) return;
+        
         const item = mockData[index];
         const timeStr = getTimeStr();
-
-        // 簡單的 Prompt 流程，詢問要改什麼
-        // 實際應用可以使用更漂亮的 Modal，這裡用 Prompt 模擬
-        let choice = prompt(
-            `您要修改哪項資料？(請輸入數字)\n\n` +
-            `1. 訂單編號 (目前: ${item.id})\n` +
-            `2. PUR 單號 (目前: ${item.pur.val || '無'})\n` +
-            `3. SAP 單號 (目前: ${item.sap.val || '無'})\n`
-        );
-
-        if (choice === '1') {
-            let newVal = prompt("請輸入新的訂單編號：", item.id);
-            if (newVal && newVal !== item.id) {
-                item.logs.push(`${timeStr} - ${CURRENT_USER} - 修正ID: ${item.id} -> ${newVal}`);
-                item.id = newVal;
-            }
-        } else if (choice === '2') {
-            // 只有當 PUR 已經填過或是正在這個階段才能改
-            let defaultVal = item.pur.val;
-            let newVal = prompt("請輸入修正後的 PUR 單號：", defaultVal);
-            if (newVal !== null && newVal !== defaultVal) {
-                 item.logs.push(`${timeStr} - ${CURRENT_USER} - 修正PUR: ${defaultVal} -> ${newVal}`);
-                 item.pur.val = newVal;
-            }
-        } else if (choice === '3') {
-            let defaultVal = item.sap.val;
-            let newVal = prompt("請輸入修正後的 SAP 單號：", defaultVal);
-             if (newVal !== null && newVal !== defaultVal) {
-                 item.logs.push(`${timeStr} - ${CURRENT_USER} - 修正SAP: ${defaultVal} -> ${newVal}`);
-                 item.sap.val = newVal;
-            }
-        }
-        
+        item.ordered.val = "已下單";
+        item.ordered.time = timeStr;
+        item.status = "已下單";
+        item.logs.push(`${timeStr} - ${CURRENT_USER} - 點選已下單 (完成)`);
         renderTable();
     }
 
-    // 初始執行
+    function saveModification(index, newId, newPur, newSap) {
+        const item = mockData[index];
+        const timeStr = getTimeStr();
+        let changes = [];
+
+        if(item.id !== newId) {
+            changes.push(`ID: ${item.id}->${newId}`);
+            item.id = newId;
+        }
+        if(item.pur.val !== newPur) {
+            changes.push(`PUR: ${item.pur.val}->${newPur}`);
+            item.pur.val = newPur;
+        }
+        if(item.sap.val !== newSap) {
+            changes.push(`SAP: ${item.sap.val}->${newSap}`);
+            item.sap.val = newSap;
+        }
+
+        if(changes.length > 0) {
+            item.logs.push(`${timeStr} - ${CURRENT_USER} - 修改資料: ${changes.join(", ")}`);
+            renderTable();
+        }
+    }
+
+    // 點擊 Modal 外部可關閉
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            closeModal();
+        }
+    }
+
     renderTable();
 </script>
 
