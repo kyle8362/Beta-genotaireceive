@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>採購流程進度追蹤 - 視窗優化版</title>
+    <title>採購流程進度追蹤 - 修正版</title>
     <style>
         body { font-family: "Microsoft JhengHei", Arial, sans-serif; background-color: #f4f7f6; padding: 20px; font-size: 14px;}
         .container { min-width: 1200px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding-bottom: 50px;}
@@ -37,13 +37,13 @@
 
         .timestamp { display: block; font-size: 11px; color: #888; margin-top: 2px; }
 
-        /* --- Tooltip (懸浮紀錄) 樣式 - 改為顯示在右側 --- */
+        /* --- Tooltip (懸浮紀錄) 樣式 --- */
         .tooltip-container {
             position: relative;
             display: inline-block;
             cursor: pointer;
             color: #555;
-            font-size: 18px; /* 圖示大一點 */
+            font-size: 18px;
         }
         .tooltip-container .tooltip-text {
             visibility: hidden;
@@ -54,11 +54,11 @@
             border-radius: 6px;
             padding: 10px;
             
-            /* 關鍵定位修改：顯示在右側 */
+            /* 顯示在右側 */
             position: absolute;
             z-index: 100;
             top: -10px; 
-            left: 130%; /* 把框框推到右邊 */
+            left: 130%; 
             
             opacity: 0;
             transition: opacity 0.3s;
@@ -67,12 +67,12 @@
             white-space: pre-wrap;
             box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
         }
-        /* 增加一個小箭頭指向左邊 */
+        /* 小箭頭 */
         .tooltip-container .tooltip-text::after {
             content: "";
             position: absolute;
             top: 15px;
-            right: 100%; /* 箭頭在框框左側 */
+            right: 100%;
             margin-top: -5px;
             border-width: 5px;
             border-style: solid;
@@ -85,7 +85,7 @@
 
         /* --- Modal (置中彈跳視窗) 樣式 --- */
         .modal-overlay {
-            display: none; /* 預設隱藏 */
+            display: none;
             position: fixed;
             z-index: 1000;
             left: 0;
@@ -93,7 +93,7 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.5); /* 半透明黑底 */
+            background-color: rgba(0,0,0,0.5);
             justify-content: center;
             align-items: center;
         }
@@ -103,7 +103,7 @@
             padding: 25px;
             border-radius: 8px;
             border: 1px solid #888;
-            width: 400px; /* 視窗寬度 */
+            width: 400px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             animation: fadeIn 0.3s;
         }
@@ -187,7 +187,7 @@
 
     const CURRENT_USER = "測試員";
 
-    // 取得時間格式 helper
+    // helper function
     function getDateStr() { const now = new Date(); return `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')}`; }
     function getTimeStr() { const now = new Date(); return `${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`; }
 
@@ -238,25 +238,23 @@
         });
     }
 
-    // --- Modal 控制邏輯 ---
+    // --- Modal 控制邏輯 (已修正錯誤) ---
     const modal = document.getElementById('customModal');
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
-    const confirmBtn = document.getElementById('modalConfirmBtn');
+    const confirmBtn = document.getElementById('modalConfirmBtn'); // 取得一次即可
 
     function closeModal() {
         modal.style.display = "none";
     }
 
-    // 開啟 Modal，根據 action 決定顯示什麼內容
     function openModal(action, index) {
-        modal.style.display = "flex"; // 設為 flex 讓他置中
+        modal.style.display = "flex";
         let item = (index !== undefined) ? mockData[index] : null;
 
-        // 移除舊的 event listener
-        let newBtn = confirmBtn.cloneNode(true);
-        confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
-        const activeConfirmBtn = newBtn;
+        // **修正重點：**
+        // 不再使用 cloneNode 與 replaceChild，改為直接覆寫 onclick。
+        // 這保證了 confirmBtn 永遠指向同一個 DOM 元素，不會遺失。
 
         if (action === 'add') {
             modalTitle.innerText = "新增採購訂單";
@@ -264,7 +262,7 @@
                 <div class="modal-label">訂單編號 / 備庫存編號：</div>
                 <input type="text" id="mInput" class="modal-input" placeholder="例如：A2024-001">
             `;
-            activeConfirmBtn.onclick = () => {
+            confirmBtn.onclick = function() { // 直接指定函式
                 const val = document.getElementById('mInput').value;
                 if(val) { addNewOrder(val); closeModal(); }
             };
@@ -275,7 +273,7 @@
                 <div class="modal-label">PUR 單號：</div>
                 <input type="text" id="mInput" class="modal-input" placeholder="請輸入 PUR 單號">
             `;
-            activeConfirmBtn.onclick = () => {
+            confirmBtn.onclick = function() {
                 const val = document.getElementById('mInput').value;
                 if(val) { updateStep(index, 'pur', val); closeModal(); }
             };
@@ -286,14 +284,13 @@
                 <div class="modal-label">SAP 單號：</div>
                 <input type="text" id="mInput" class="modal-input" placeholder="請輸入 SAP 單號">
             `;
-            activeConfirmBtn.onclick = () => {
+            confirmBtn.onclick = function() {
                 const val = document.getElementById('mInput').value;
                 if(val) { updateStep(index, 'sap', val); closeModal(); }
             };
 
         } else if (action === 'modify') {
             modalTitle.innerText = "修改訂單資料";
-            // 修改時，一次顯示三個欄位方便編輯
             modalBody.innerHTML = `
                 <div class="modal-label">訂單編號：</div>
                 <input type="text" id="modId" class="modal-input" value="${item.id}">
@@ -302,7 +299,7 @@
                 <div class="modal-label">SAP 單號：</div>
                 <input type="text" id="modSap" class="modal-input" value="${item.sap.val}">
             `;
-            activeConfirmBtn.onclick = () => {
+            confirmBtn.onclick = function() {
                 const newId = document.getElementById('modId').value;
                 const newPur = document.getElementById('modPur').value;
                 const newSap = document.getElementById('modSap').value;
@@ -348,7 +345,6 @@
     }
 
     function confirmOrder(index) {
-        // 確認框還是保留簡單的 confirm 比較快，也可以改成 modal，看您需求
         if(!confirm("確認此訂單已完成原廠下單？")) return;
         
         const item = mockData[index];
