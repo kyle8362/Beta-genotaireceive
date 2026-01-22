@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="robots" content="noindex, nofollow">
-    <title>中區收送件進度追蹤系統 (v53 Restored)</title>
+    <title>中區收送件進度追蹤系統 (v53 NGS Fixed)</title>
 
     <script src="https://unpkg.com/firebase@9.22.2/firebase-app-compat.js"></script>
     <script src="https://unpkg.com/firebase@9.22.2/firebase-firestore-compat.js"></script>
@@ -39,7 +39,6 @@
         .sidebar-scroll { padding: 0.5rem 1.5rem 1.5rem 1.5rem; flex-grow: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
         .sidebar-scroll::-webkit-scrollbar { width: 5px; }
         .sidebar-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
-        /* ========================= */
         
         .user-profile { display: flex; align-items: center; gap: 10px; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
         .avatar { width: 40px; height: 40px; background: var(--primary); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; flex-shrink: 0; }
@@ -120,7 +119,22 @@
         .task-item.completed-item .task-title { color: #9ca3af; text-decoration: line-through; }
         .ngs-badge { display: inline-block; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc; background: #fdfdfd; margin-right: 5px; margin-top: 3px; color: #555; }
         
-        .assign-badge { display: inline-block; font-size: 0.95rem; background-color: var(--assign-bg); color: white; padding: 4px 10px; border-radius: 6px; margin-left: 10px; vertical-align: middle; font-weight: 800; box-shadow: 0 2px 4px rgba(0,0,0,0.3); white-space: nowrap; letter-spacing: 0.5px; border: 1px solid #312e81; }
+        /* === ENHANCED ASSIGN BADGE === */
+        .assign-badge { 
+            display: inline-block; 
+            font-size: 0.95rem; 
+            background-color: var(--assign-bg); 
+            color: white; 
+            padding: 4px 10px; 
+            border-radius: 6px; 
+            margin-left: 10px; 
+            vertical-align: middle; 
+            font-weight: 800; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            white-space: nowrap;
+            letter-spacing: 0.5px;
+            border: 1px solid #312e81;
+        }
 
         .action-area { display: flex; flex-direction: column; align-items: center; gap: 8px; }
         .btn-icon { background: none; border: 1px solid transparent; cursor: pointer; font-size: 1.2rem; padding: 2px 6px; color: #9ca3af; border-radius: 4px; }
@@ -133,7 +147,7 @@
         .fab { position: fixed; bottom: 2rem; right: 2rem; width: 60px; height: 60px; background: var(--primary); color: white; border-radius: 50%; font-size: 32px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: transform 0.2s; z-index: 800; }
         .fab:hover { transform: scale(1.05); background: #0d9488; }
 
-        /* Client Search Styles */
+        /* Client Search */
         .cust-header { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         .cust-search-bar { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
         .btn-google-form { background: #4285F4; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border:none; cursor:pointer;}
@@ -176,7 +190,6 @@
         /* User List and Settings Styles */
         .user-list, .settings-list, .assign-list { list-style: none; padding: 0; margin: 0; }
         .user-item { display: flex; flex-direction: column; padding: 15px; border: 1px solid #eee; background: white; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: 0.2s; }
-        .user-item:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.05); transform: translateY(-1px); }
         .user-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .user-name { font-weight: 700; font-size: 1.05rem; color: #1f2937; }
         .user-role-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; margin-left: 8px; border: 1px solid #ddd; font-weight: 500; }
@@ -668,13 +681,8 @@
 
     /* --- USER MANAGEMENT --- */
     function openUserModal() {
-        renderUserList(); // Call render function
-        document.getElementById('userModal').style.display = 'flex';
-    }
-
-    function renderUserList() {
         const list = document.getElementById('userListDisplay'); 
-        if(!list) return; 
+        const myRole = state.currentUser ? state.currentUser.role : 'user'; 
         const filterRole = document.getElementById('userFilterSelect') ? document.getElementById('userFilterSelect').value : 'all'; 
         
         list.innerHTML = '';
@@ -899,6 +907,10 @@
     function updateTaskDb(id, data, logType, logDesc) { const task = state.tasks.find(t => t.id === id); const newLogs = task.logs || []; newLogs.unshift({ type: logType, desc: logDesc, user: state.currentUser.name, time: new Date().toISOString() }); db.collection('tasks').doc(id).update({ ...data, logs: newLogs }); }
     function changeDate(d, addHistory = true) { state.currentDate = d; document.getElementById('dateSearch').value = d; const dateObj = new Date(d); document.getElementById('headerDateDisplay').innerText = dateObj.toLocaleDateString('zh-TW', {weekday:'long', year:'numeric', month:'long', day:'numeric'}); if(addHistory) { let hist = state.history.filter(x => x !== d); hist.unshift(d); if(hist.length > 10) hist.pop(); state.history = hist; localStorage.setItem('tt_history', JSON.stringify(hist)); renderHistory(); } renderTasks(); }
     function renderHistory() { const ul = document.getElementById('historyList'); ul.innerHTML = ''; state.history.forEach(d => { const li = document.createElement('li'); li.className = `history-item ${d === state.currentDate?'active':''}`; li.innerText = d; li.onclick = () => { changeDate(d, false); if(window.innerWidth<=768) toggleSidebar(); }; ul.appendChild(li); }); }
+    const storedUser = localStorage.getItem('tt_current_user'); if(storedUser) { state.currentUser = JSON.parse(storedUser); initApp(); }
+    function openModal(taskId=null) { populateSalesDropdowns(); const modal=document.getElementById('taskModal'); const editor=document.getElementById('inputTitle'); document.getElementById('taskModal').style.display='flex'; editor.focus(); document.getElementById('ngs-form-container').style.display = 'none'; document.getElementById('ngsUnit').value = ''; document.getElementById('ngsPI').value = ''; document.getElementById('ngsNeeds').value = ''; document.getElementById('ngs-extraction-fields').style.display = 'none'; document.getElementById('ngs-qc-fields').style.display = 'none'; if(taskId) { state.editingTaskId=taskId; const t=state.tasks.find(x=>x.id===taskId); document.getElementById('modalTitle').innerText='編輯任務內容'; editor.innerHTML=t.title; document.getElementById('inputCategory').value=t.category; document.getElementById('btnSaveTask').innerText='保存修改'; if (t.category === 'NGS收件' && t.details) { document.getElementById('ngs-form-container').style.display = 'block'; document.getElementById('ngsUnit').value = t.details.unit || ''; document.getElementById('ngsPI').value = t.details.pi || ''; document.getElementById('ngsNeeds').value = t.details.needs || ''; const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val||''; }; const setDropdown = (selId, inpId, val, opts) => { if(opts.includes(val)) { document.getElementById(selId).value=val; document.getElementById(inpId).style.display='none'; } else { document.getElementById(selId).value='其他'; document.getElementById(inpId).style.display='block'; document.getElementById(inpId).value=val; } }; if (t.details.needs === '萃取') { document.getElementById('ngs-extraction-fields').style.display = 'block'; setVal('ngsTemp', t.details.temp); setVal('ngsReturn', t.details.returnBack); setVal('ngsCount', t.details.sampleCount); setVal('ngsSales', t.details.sales); setDropdown('ngsSampleTypeSelect', 'ngsSampleTypeInput', t.details.sampleType, ['Cell','Blood','Tissue','Plant']); setDropdown('ngsExpTypeSelect', 'ngsExpTypeInput', t.details.expType, ['Seq Only','DGE','Small RNA','WES','WGS','PIPseq','Amplicon Sequence','細菌WGS','metagenome','16s','16sFL','Olink','10x','RADseq']); setDropdown('ngsPlatformSelect', 'ngsPlatformInput', t.details.platform, ['Novaseq X Plus','Miseq','PacBio','Nanopore','Olink']); } else if (t.details.needs === 'QC') { document.getElementById('ngs-qc-fields').style.display = 'block'; setVal('ngsQcTemp', t.details.temp); setVal('ngsQcReturn', t.details.returnBack); setVal('ngsQcCount', t.details.sampleCount); setVal('ngsQcSales', t.details.sales); setDropdown('ngsNucleicTypeSelect', 'ngsNucleicTypeInput', t.details.nucleicType, ['DNA','RNA','Library','miRNA']); setDropdown('ngsQcExpTypeSelect', 'ngsQcExpTypeInput', t.details.expType, ['Seq Only','DGE','Small RNA','WES','WGS','PIPseq','Amplicon Sequence','細菌WGS','metagenome','16s','16sFL','Olink','10x','RADseq']); setDropdown('ngsQcPlatformSelect', 'ngsQcPlatformInput', t.details.platform, ['Novaseq X Plus','Miseq','PacBio','Nanopore','Olink']); } } } else { state.editingTaskId=null; document.getElementById('modalTitle').innerText='新增案件/任務'; editor.innerHTML=''; document.getElementById('btnSaveTask').innerText='確認新增'; document.getElementById('inputCategory').value = '定序收件'; } }
+    function closeModal() { document.getElementById('taskModal').style.display='none'; state.editingTaskId=null; }
+    function showHistory(id) { const t = state.tasks.find(x=>x.id===id); if(!t) return; const list = document.getElementById('logList'); list.innerHTML=''; (t.logs||[]).forEach(l => { const d=new Date(l.time); const timeStr=`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes()}`; const userDisp = getUserDisplayName(l.user); list.innerHTML+=`<li class="log-item"><div class="log-time">${timeStr}</div><div class="log-content"><span class="log-user">${userDisp}</span> ${l.desc}</div></li>`; }); document.getElementById('historyModal').style.display='flex'; }
     document.getElementById('taskModal').addEventListener('click', e => { if(e.target.id==='taskModal') closeModal(); });
 </script>
 </body>
