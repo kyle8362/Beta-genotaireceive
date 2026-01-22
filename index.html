@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="robots" content="noindex, nofollow">
-    <title>中區收送件進度追蹤系統 (v56 Purchase Upgrade)</title>
+    <title>中區收送件進度追蹤系統 (v57 Login Fixed)</title>
 
     <script src="https://unpkg.com/firebase@9.22.2/firebase-app-compat.js"></script>
     <script src="https://unpkg.com/firebase@9.22.2/firebase-firestore-compat.js"></script>
@@ -458,8 +458,8 @@
       appId: "1:528459789330:web:caca16ee7c2b4efa1754cb",
       measurementId: "G-7JHGQW385H"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    const mainApp = firebase.initializeApp(firebaseConfig);
+    const db = mainApp.firestore();
 
     // --- PURCHASE FIREBASE (Realtime Database) ---
     const purchaseConfig = {
@@ -493,7 +493,7 @@
         state.activeTab = tab;
         document.getElementById('taskView').classList.remove('active'); 
         document.getElementById('customerView').classList.remove('active');
-        document.getElementById('purchaseView').classList.remove('active'); // Hide Purchase
+        document.getElementById('purchaseView').classList.remove('active'); 
         
         document.getElementById('btnTabTasks').className = `sidebar-btn ${tab==='tasks'?'btn-nav-active':'btn-nav-inactive'}`;
         document.getElementById('btnTabCustomers').className = `sidebar-btn ${tab==='customers'?'btn-nav-active':'btn-nav-inactive'}`;
@@ -513,7 +513,7 @@
             document.getElementById('purchaseView').classList.add('active');
             if(document.getElementById('taskSearchSection')) document.getElementById('taskSearchSection').style.display = 'none'; 
             document.getElementById('taskDateSection').style.display = 'none';
-            PurchaseController.init(); // Init Purchase Data
+            PurchaseController.init(); 
         }
         if(window.innerWidth <= 768) toggleSidebar();
     }
@@ -533,7 +533,6 @@
             else if (state.currentUser.role !== me.role) { state.currentUser.role = me.role; localStorage.setItem('tt_current_user', JSON.stringify(state.currentUser)); updateUIForRole(); }
         }
     });
-    // Listen for Settings
     db.collection('settings').doc('ngs_sales').onSnapshot(doc => {
         if(doc.exists) state.salesOptions = doc.data().list || ['Jeff', '廖軒逵'];
         else { state.salesOptions = ['Jeff', '廖軒逵']; db.collection('settings').doc('ngs_sales').set({ list: state.salesOptions }); }
@@ -577,14 +576,11 @@
         const val = input.value.trim().toLowerCase();
         list.innerHTML = '';
         list.style.display = 'none';
-        
         if (!val) return;
-
         const matches = state.tasks.filter(t => {
             const rawTitle = t.title ? t.title.replace(/<[^>]+>/g, '') : '';
             return rawTitle.toLowerCase().includes(val);
         });
-
         if (matches.length > 0) {
             list.style.display = 'block';
             matches.sort((a,b) => new Date(b.date) - new Date(a.date));
@@ -646,7 +642,7 @@
         const dispName = getUserDisplayName(state.currentUser.name);
         document.getElementById('displayUsername').innerText = dispName + roleName; document.getElementById('userAvatar').innerText = dispName[0].toUpperCase();
         
-        // Show/Hide Purchase Button based on role
+        // Show/Hide Purchase Button
         const canViewPurchase = ['creator', 'senior', 'admin'].includes(state.currentUser.role);
         document.getElementById('purchaseBtn').style.display = canViewPurchase ? 'block' : 'none';
 
@@ -655,7 +651,7 @@
         document.getElementById('adminPanelBtn').style.display = canManage ? 'block' : 'none';
         document.getElementById('statsPanelBtn').style.display = canConfig ? 'block' : 'none';
         document.getElementById('salesSettingsBtn').style.display = canConfig ? 'block' : 'none';
-        document.getElementById('assignSettingsBtn').style.display = canConfig ? 'block' : 'none'; // Separate Btn
+        document.getElementById('assignSettingsBtn').style.display = canConfig ? 'block' : 'none'; 
         document.getElementById('importBtn').style.display = canManage ? 'block' : 'none'; 
     }
 
@@ -685,7 +681,6 @@
             approvedUsers.forEach(u => {
                 const checked = currentAllowed.includes(u.username) ? 'checked' : '';
                 const dName = u.nickname || u.username;
-                // Important: Use data attributes for easier selection to avoid character escaping issues
                 checkboxes += `<label class="assign-check-item"><input type="checkbox" class="assign-checkbox" data-cat="${cat}" data-user="${u.username}" ${checked}> ${dName}</label>`;
             });
 
@@ -698,7 +693,6 @@
     function saveAssignmentRules() {
         const newRules = {};
         ORDERED_CATEGORIES.forEach(cat => {
-            // Select checkboxes for this specific category that are checked
             const checkedBoxes = Array.from(document.querySelectorAll(`.assign-checkbox[data-cat="${cat}"]:checked`));
             newRules[cat] = checkedBoxes.map(cb => cb.getAttribute('data-user'));
         });
@@ -711,7 +705,6 @@
     let assigningTaskId = null;
     function openAssignModal(taskId, category) {
         assigningTaskId = taskId; const list = document.getElementById('assignUserList'); list.innerHTML = '';
-        
         const allowedUsers = state.assignmentRules[category] || [];
         let targetUsers = [];
         
@@ -1179,7 +1172,7 @@
                 };
             } else if (action === 'fillPur') {
                 title.innerText = "填寫 PUR 單號";
-                body.innerHTML = `<div class="pur-input-group"><label>PUR 單號：</label><input type="text" id="pInput" value="${item.pur.val}" autofocus></div>`;
+                body.innerHTML = `<div class="pur-input-group"><label>PUR 單號：</label><input type="text" id="pInput" class="modal-input" value="${item.pur.val}" autofocus></div>`;
                 btn.innerText = "儲存";
                 btn.onclick = () => {
                     const val = document.getElementById('pInput').value;
@@ -1191,7 +1184,7 @@
                 };
             } else if (action === 'fillSap') {
                 title.innerText = "填寫 SAP 單號";
-                body.innerHTML = `<div class="pur-input-group"><label>SAP 單號：</label><input type="text" id="pInput" value="${item.sap.val}" autofocus></div>`;
+                body.innerHTML = `<div class="pur-input-group"><label>SAP 單號：</label><input type="text" id="pInput" class="modal-input" value="${item.sap.val}" autofocus></div>`;
                 btn.innerText = "儲存";
                 btn.onclick = () => {
                     const val = document.getElementById('pInput').value;
@@ -1251,9 +1244,9 @@
             } else if (action === 'modify') {
                 title.innerText = "修改資料";
                 body.innerHTML = `
-                    <div class="pur-input-group"><label>編號</label><input id="mId" value="${item.id}"></div>
-                    <div class="pur-input-group"><label>PUR</label><input id="mPur" value="${item.pur.val}"></div>
-                    <div class="pur-input-group"><label>SAP</label><input id="mSap" value="${item.sap.val}"></div>
+                    <div class="pur-input-group"><label>編號</label><input id="mId" class="modal-input" value="${item.id}"></div>
+                    <div class="pur-input-group"><label>PUR</label><input id="mPur" class="modal-input" value="${item.pur.val}"></div>
+                    <div class="pur-input-group"><label>SAP</label><input id="mSap" class="modal-input" value="${item.sap.val}"></div>
                 `;
                 btn.innerText = "儲存修改";
                 btn.onclick = () => {
