@@ -4,43 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中區 QIAGEN 採購流程進度表</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
     <style>
-        /* --- CSS 樣式區 (View) --- */
+        /* --- CSS 樣式區 --- */
         body { font-family: "Microsoft JhengHei", Arial, sans-serif; background-color: #f4f7f6; padding: 20px; font-size: 14px;}
         .container { min-width: 1300px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding-bottom: 50px;}
         
-        /* 標題與工具列 */
         .header-section { display: flex; flex-direction: column; border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 15px; }
         .header-title { margin: 0 0 15px 0; color: #2c3e50; font-size: 24px; }
         .toolbar-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .toolbar-left { display: flex; gap: 10px; align-items: center; }
 
-        /* 通用按鈕樣式 */
         .btn-base { border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; font-weight: bold; transition: 0.2s; }
         .btn-lg { padding: 10px 20px; font-size: 15px; }
         .btn-sm { padding: 6px 12px; font-size: 13px; color: white; white-space: nowrap; }
         
-        /* 功能按鈕顏色 */
         .btn-add { background-color: #e67e22; color: white; } .btn-add:hover { background-color: #d35400; }
         .btn-filter { background-color: #34495e; color: white; } .btn-filter:hover { background-color: #2c3e50; }
         
-        /* 表格操作按鈕 */
-        .btn-action { background-color: #3498db; } .btn-action:hover { background-color: #2980b9; } /* 藍色 */
-        .btn-final { background-color: #27ae60; } .btn-final:hover { background-color: #219150; }   /* 綠色 */
-        .btn-modify { background-color: #f39c12; } .btn-modify:hover { background-color: #d68910; } /* 橘色 */
-        .btn-delete { background-color: #c0392b; } .btn-delete:hover { background-color: #a93226; } /* 深紅 (刪除) */
-        .btn-restore { background-color: #2ecc71; } .btn-restore:hover { background-color: #27ae60; } /* 亮綠 (恢復) */
-        .btn-revert { background-color: #7f8c8d; } .btn-revert:hover { background-color: #616a6b; } /* 灰色 (取消下單) */
+        .btn-action { background-color: #3498db; } .btn-action:hover { background-color: #2980b9; } 
+        .btn-final { background-color: #27ae60; } .btn-final:hover { background-color: #219150; }   
+        .btn-modify { background-color: #f39c12; } .btn-modify:hover { background-color: #d68910; } 
+        .btn-delete { background-color: #c0392b; } .btn-delete:hover { background-color: #a93226; } 
+        .btn-restore { background-color: #2ecc71; } .btn-restore:hover { background-color: #27ae60; } 
+        .btn-revert { background-color: #7f8c8d; } .btn-revert:hover { background-color: #616a6b; } 
 
         .search-box { padding: 10px 12px; border: 1px solid #ccc; border-radius: 5px; width: 250px; font-size: 14px; }
 
-        /* 表格樣式 */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
         th { background-color: #2c3e50; color: white; padding: 12px; text-align: center; white-space: nowrap; border: 1px solid #ddd;}
         td { padding: 8px; border: 1px solid #ddd; text-align: center; vertical-align: middle; }
         tr:nth-child(even) { background-color: #fcfcfc; }
 
-        /* 狀態欄位滿版 */
         td.status-cell { padding: 0 !important; height: 60px; vertical-align: middle; }
         .badge { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; color: white; font-size: 18px; font-weight: bold; border-radius: 0; letter-spacing: 1px; }
         
@@ -48,22 +46,19 @@
         .st-pur { background-color: #17a2b8; } 
         .st-sap { background-color: #6f42c1; } 
         .st-ordered { background-color: #28a745; } 
-        .st-cancel { background-color: #d63031; } /* 刪除/取消狀態 */
+        .st-cancel { background-color: #d63031; } 
 
         .row-cancelled { color: #aaa; background-color: #f0f0f0; }
         .row-cancelled strong { text-decoration: line-through; }
         
-        /* 按鈕群組 */
         .action-btn-group { display: flex; justify-content: center; align-items: center; gap: 5px; white-space: nowrap; }
         .timestamp { display: block; font-size: 11px; color: #888; margin-top: 2px; }
 
-        /* Tooltip */
         .tooltip-container { position: relative; display: inline-block; cursor: pointer; color: #555; font-size: 18px; }
         .tooltip-container .tooltip-text { visibility: hidden; width: 320px; background-color: #333; color: #fff; text-align: left; border-radius: 6px; padding: 10px; position: absolute; z-index: 100; top: -10px; left: 140%; opacity: 0; transition: opacity 0.3s; font-size: 12px; line-height: 1.5; white-space: pre-wrap; box-shadow: 2px 2px 10px rgba(0,0,0,0.3); }
         .tooltip-container .tooltip-text::after { content: ""; position: absolute; top: 15px; right: 100%; margin-top: -5px; border-width: 5px; border-style: solid; border-color: transparent #333 transparent transparent; }
         .tooltip-container:hover .tooltip-text { visibility: visible; opacity: 1; }
 
-        /* Modal */
         .modal-overlay { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
         .modal-box { background-color: #fefefe; margin: auto; padding: 25px; border-radius: 8px; width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: fadeIn 0.3s; }
         @keyframes fadeIn { from {opacity: 0; transform: translateY(-20px);} to {opacity: 1; transform: translateY(0);} }
@@ -136,16 +131,40 @@
 
 <script>
     /**
-     * MODULE 1: Config & Utils (工具組)
+     * MODULE 0: Firebase Configuration
+     */
+    // ============================================
+    // 這裡已填入您提供的 Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDhbjXi1MoVPt2-yIOsB-OZFUtQsqtYvBs",
+      authDomain: "realtime-database-ea408.firebaseapp.com",
+      databaseURL: "https://realtime-database-ea408-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "realtime-database-ea408",
+      storageBucket: "realtime-database-ea408.firebasestorage.app",
+      messagingSenderId: "434463345733",
+      appId: "1:434463345733:web:1a60ba14b33cf602d7272c",
+      measurementId: "G-Q4K7GN2JE4"
+    };
+    // ============================================
+
+    // 初始化 Firebase
+    try {
+        firebase.initializeApp(firebaseConfig);
+        var db = firebase.database();
+        console.log("Firebase initialized successfully.");
+    } catch (e) {
+        console.error("Firebase initialization failed:", e);
+        alert("資料庫連線失敗，請檢查網路或 Config 設定。");
+    }
+
+    /**
+     * MODULE 1: Config & Utils
      */
     const Config = {
-        currentUser: "測試員",
+        currentUser: "測試員", 
         status: {
-            NEW: "新建立",
-            PUR_FILLED: "已填PUR",
-            SAP_FILLED: "已填SAP",
-            ORDERED: "已下單",
-            CANCELLED: "採購取消"
+            NEW: "新建立", PUR_FILLED: "已填PUR", SAP_FILLED: "已填SAP",
+            ORDERED: "已下單", CANCELLED: "採購取消"
         }
     };
 
@@ -155,141 +174,148 @@
     };
 
    /**
-     * MODULE 2: Data Service (已連結 Google Sheet)
+     * MODULE 2: Data Service (Firebase Version)
      */
     const DataService = {
-        // 本地暫存資料 (用來快速渲染搜尋)
         _localData: [],
 
-        // 初始化：從後端讀取資料
-        loadFromBackend: (callback) => {
-            // 顯示載入中 (可選)
-            document.getElementById('tableBody').innerHTML = '<tr><td colspan="8">資料讀取中...</td></tr>';
+        // 啟動監聽 (Realtime Listener)
+        initListener: (callback) => {
+            const ref = db.ref('purchaseOrders');
             
-            google.script.run.withSuccessHandler((response) => {
-                DataService._localData = response; // 更新本地暫存
+            ref.on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val) {
+                    // 將 Object 轉為 Array，並加入 firebaseKey
+                    const list = Object.keys(val).map(key => {
+                        return { ...val[key], firebaseKey: key }; 
+                    });
+                    // 反轉陣列，讓最新的在最上面
+                    DataService._localData = list.reverse();
+                } else {
+                    DataService._localData = [];
+                }
+                
                 if (callback) callback();
-            }).getPurchaseList(); // 呼叫後端函數
+            });
         },
 
-        // 取得所有資料 (回傳本地暫存)
         getAll: () => DataService._localData,
 
-        // --- 通用儲存處理器 ---
-        // 所有的 新增/修改/刪除 最終都呼叫這個函數同步回 Google Sheet
-        _syncToSheet: (item, onSuccess) => {
-            google.script.run.withSuccessHandler(() => {
-                console.log("Synced to Sheet:", item.id);
-                if (onSuccess) onSuccess();
-            }).savePurchaseOrder(item);
-        },
-
-        // 新增資料
+        // 新增資料 (寫入 Firebase)
         add: (id) => {
             const timeStr = Utils.getTimeStr();
             const newRow = {
-                id: id, createDate: Utils.getDateStr(),
-                pur: { val: "", time: "" }, sap: { val: "", time: "" }, ordered: { val: "", time: "" },
+                id: id, 
+                createDate: Utils.getDateStr(),
+                timestamp: Date.now(), // 👈 方案 A 關鍵：加上時間戳記以供後續自動清理
+                pur: { val: "", time: "" }, 
+                sap: { val: "", time: "" }, 
+                ordered: { val: "", time: "" },
                 status: Config.status.NEW,
                 logs: [`${timeStr} - ${Config.currentUser} - 建立訂單 (${id})`]
             };
-            
-            // 1. 先更新本地 (讓使用者覺得很快)
-            DataService._localData.unshift(newRow);
-            AppController.renderTable();
-            
-            // 2. 背景寫入 Sheet
-            DataService._syncToSheet(newRow);
+            // 推送到 Firebase
+            db.ref('purchaseOrders').push(newRow);
         },
 
-        // 更新欄位 (PUR/SAP)
+        // 更新 Firebase 資料 (通用)
+        _update: (index, updates) => {
+            const item = DataService._localData[index];
+            if (!item || !item.firebaseKey) return;
+            
+            db.ref('purchaseOrders/' + item.firebaseKey).update(updates)
+              .catch(err => console.error("Update failed", err));
+        },
+
+        // 更新欄位
         updateField: (index, field, val) => {
             const item = DataService._localData[index];
             const timeStr = Utils.getTimeStr();
-            
+            let updates = {};
+
             if(field === 'pur') {
-                item.pur.val = val; item.pur.time = timeStr;
-                item.status = Config.status.PUR_FILLED;
-                item.logs.push(`${timeStr} - ${Config.currentUser} - 填寫PUR: ${val}`);
+                updates['pur'] = { val: val, time: timeStr };
+                updates['status'] = Config.status.PUR_FILLED;
+                let newLogs = [...(item.logs || []), `${timeStr} - ${Config.currentUser} - 填寫PUR: ${val}`];
+                updates['logs'] = newLogs;
             } else if (field === 'sap') {
-                item.sap.val = val; item.sap.time = timeStr;
-                item.status = Config.status.SAP_FILLED;
-                item.logs.push(`${timeStr} - ${Config.currentUser} - 填寫SAP: ${val}`);
+                updates['sap'] = { val: val, time: timeStr };
+                updates['status'] = Config.status.SAP_FILLED;
+                let newLogs = [...(item.logs || []), `${timeStr} - ${Config.currentUser} - 填寫SAP: ${val}`];
+                updates['logs'] = newLogs;
             }
-            
-            DataService._syncToSheet(item); // 同步
+            DataService._update(index, updates);
         },
 
-        // 確認下單
         confirmOrder: (index) => {
             const item = DataService._localData[index];
             const timeStr = Utils.getTimeStr();
-            item.ordered.val = "已下單";
-            item.ordered.time = timeStr;
-            item.status = Config.status.ORDERED;
-            item.logs.push(`${timeStr} - ${Config.currentUser} - 確認已下單 (結案)`);
+            let newLogs = [...(item.logs || []), `${timeStr} - ${Config.currentUser} - 確認已下單 (結案)`];
             
-            DataService._syncToSheet(item); // 同步
+            DataService._update(index, {
+                ordered: { val: "已下單", time: timeStr },
+                status: Config.status.ORDERED,
+                logs: newLogs
+            });
         },
 
-        // 取消下單 (退回上一動作) - 需求1
         revertOrder: (index) => {
             const item = DataService._localData[index];
             const timeStr = Utils.getTimeStr();
-            
-            // 清除下單資料
-            item.ordered.val = "";
-            item.ordered.time = "";
-            
-            // 邏輯判斷退回狀態 (如果有 SAP 就退回 SAP，沒有則退回 PUR...以此類推)
-            if (item.sap.val) item.status = Config.status.SAP_FILLED;
-            else if (item.pur.val) item.status = Config.status.PUR_FILLED;
-            else item.status = Config.status.NEW;
+            let newStatus = Config.status.NEW;
+            if (item.sap.val) newStatus = Config.status.SAP_FILLED;
+            else if (item.pur.val) newStatus = Config.status.PUR_FILLED;
 
-            item.logs.push(`${timeStr} - ${Config.currentUser} - 取消下單 (退回流程)`);
-            
-            DataService._syncToSheet(item); // 同步
+            let newLogs = [...(item.logs || []), `${timeStr} - ${Config.currentUser} - 取消下單 (退回流程)`];
+
+            DataService._update(index, {
+                ordered: { val: "", time: "" },
+                status: newStatus,
+                logs: newLogs
+            });
         },
 
-        // 修改資料
         modify: (index, newId, newPur, newSap) => {
             const item = DataService._localData[index];
             const timeStr = Utils.getTimeStr();
             let changes = [];
-            
-            if(item.id !== newId) { changes.push(`ID: ${item.id}->${newId}`); item.id = newId; }
-            if(item.pur.val !== newPur) { changes.push(`PUR: ${item.pur.val}->${newPur}`); item.pur.val = newPur; }
-            if(item.sap.val !== newSap) { changes.push(`SAP: ${item.sap.val}->${newSap}`); item.sap.val = newSap; }
-            
+            let updates = {};
+
+            if(item.id !== newId) { changes.push(`ID: ${item.id}->${newId}`); updates['id'] = newId; }
+            if(item.pur.val !== newPur) { changes.push(`PUR: ${item.pur.val}->${newPur}`); updates['pur'] = { ...item.pur, val: newPur }; }
+            if(item.sap.val !== newSap) { changes.push(`SAP: ${item.sap.val}->${newSap}`); updates['sap'] = { ...item.sap, val: newSap }; }
+
             if(changes.length > 0) {
-                item.logs.push(`${timeStr} - ${Config.currentUser} - 修改資料: ${changes.join(", ")}`);
-                DataService._syncToSheet(item); // 同步
+                let newLogs = [...(item.logs || []), `${timeStr} - ${Config.currentUser} - 修改資料: ${changes.join(", ")}`];
+                updates['logs'] = newLogs;
+                DataService._update(index, updates);
             }
         },
 
-        // 刪除 (軟刪除) - 需求2
         delete: (index) => {
             const item = DataService._localData[index];
             const timeStr = Utils.getTimeStr();
-            item.status = Config.status.CANCELLED;
-            item.logs.push(`${timeStr} - ${Config.currentUser} - 刪除 (採購取消)`);
-            
-            DataService._syncToSheet(item); // 同步
+            let newLogs = [...(item.logs || []), `${timeStr} - ${Config.currentUser} - 刪除 (採購取消)`];
+            DataService._update(index, {
+                status: Config.status.CANCELLED,
+                logs: newLogs
+            });
         },
 
-        // 恢復
         restore: (index) => {
             const item = DataService._localData[index];
             const timeStr = Utils.getTimeStr();
-            // 智慧恢復
-            if (item.ordered.val === "已下單") item.status = Config.status.ORDERED;
-            else if (item.sap.val) item.status = Config.status.SAP_FILLED;
-            else if (item.pur.val) item.status = Config.status.PUR_FILLED;
-            else item.status = Config.status.NEW;
+            let newStatus = Config.status.NEW;
+            if (item.ordered.val === "已下單") newStatus = Config.status.ORDERED;
+            else if (item.sap.val) newStatus = Config.status.SAP_FILLED;
+            else if (item.pur.val) newStatus = Config.status.PUR_FILLED;
 
-            item.logs.push(`${timeStr} - ${Config.currentUser} - 恢復採購`);
-            
-            DataService._syncToSheet(item); // 同步
+            let newLogs = [...(item.logs || []), `${timeStr} - ${Config.currentUser} - 恢復採購`];
+            DataService._update(index, {
+                status: newStatus,
+                logs: newLogs
+            });
         }
     };
 
@@ -300,20 +326,18 @@
         filterYear: 'All',
         filterStatus: 'All',
         
-        // 初始化：改成呼叫 loadFromBackend
         init: () => {
-            DataService.loadFromBackend(() => {
-                AppController.renderTable(); // 資料抓完後才渲染
+            document.getElementById('tableBody').innerHTML = '<tr><td colspan="8">資料讀取中 (Firebase)...</td></tr>';
+            DataService.initListener(() => {
+                AppController.renderTable();
             });
         },
 
-        // 渲染表格
         renderTable: () => {
             const tbody = document.getElementById('tableBody');
             const searchVal = document.getElementById('searchInput').value.toUpperCase();
             const filterDisplay = document.getElementById('activeFilterDisplay');
             
-            // 顯示篩選標籤
             if(AppController.filterYear !== 'All' || AppController.filterStatus !== 'All') {
                 filterDisplay.style.display = 'inline-block';
                 filterDisplay.innerText = `篩選中: ${AppController.filterYear} / ${AppController.filterStatus}`;
@@ -324,42 +348,33 @@
             tbody.innerHTML = '';
             const data = DataService.getAll();
 
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="color:#888;">目前沒有採購資料</td></tr>';
+                return;
+            }
+
             data.forEach((item, index) => {
-                // 篩選邏輯
                 if (searchVal && !item.id.toUpperCase().includes(searchVal)) return;
                 if (AppController.filterStatus !== "All" && item.status !== AppController.filterStatus) return;
                 if (AppController.filterYear !== "All" && !item.createDate.startsWith(AppController.filterYear)) return;
 
-                // 產生 HTML
                 tbody.innerHTML += RenderService.createRowHtml(item, index);
             });
         },
 
-        // 開啟 Modal (分發到 RenderService)
-        openModal: (action, index) => {
-            RenderService.showModal(action, index);
-        },
-
-        closeModal: () => {
-            document.getElementById('customModal').style.display = "none";
-        },
-
-        // 批量新增欄位
-        addBatchInputs: (count) => {
-            RenderService.appendBatchInputs(count);
-        }
+        openModal: (action, index) => { RenderService.showModal(action, index); },
+        closeModal: () => { document.getElementById('customModal').style.display = "none"; },
+        addBatchInputs: (count) => { RenderService.appendBatchInputs(count); }
     };
 
     /**
-     * MODULE 4: Render Service (畫面渲染層)
+     * MODULE 4: Render Service
      */
     const RenderService = {
-        // 產生單列 HTML
         createRowHtml: (item, index) => {
             const isCancelled = (item.status === Config.status.CANCELLED);
             const rowClass = isCancelled ? "row-cancelled" : "";
             
-            // 狀態 Class 對應
             let badgeClass = "";
             switch(item.status) {
                 case Config.status.NEW: badgeClass = "st-new"; break;
@@ -370,14 +385,11 @@
                 default: badgeClass = "st-new";
             }
 
-            // 按鈕生成邏輯
             let buttonsHtml = "";
             if (isCancelled) {
-                // 已刪除狀態 -> 顯示恢復
                 buttonsHtml = `<div class="action-btn-group"><button class="btn-base btn-sm btn-restore" onclick="AppController.openModal('restore', ${index})">♻️ 恢復採購</button></div>`;
             } else {
                 let mainBtn = "";
-                
                 if (item.status === Config.status.NEW) {
                     mainBtn = `<button class="btn-base btn-sm btn-action" onclick="AppController.openModal('fillPur', ${index})">填寫 PUR</button>`;
                 } else if (item.status === Config.status.PUR_FILLED) {
@@ -385,19 +397,16 @@
                 } else if (item.status === Config.status.SAP_FILLED) {
                     mainBtn = `<button class="btn-base btn-sm btn-final" onclick="AppController.openModal('confirmOrder', ${index})">✅ 確認下單</button>`;
                 } else if (item.status === Config.status.ORDERED) {
-                    // 需求 1: 已下單 -> 顯示取消下單 (退回)
                     mainBtn = `<button class="btn-base btn-sm btn-revert" onclick="AppController.openModal('revertOrder', ${index})">↩️ 取消下單</button>`;
                 }
 
-                // 修改 與 刪除 (需求 2: 取消 改為 刪除)
                 let modifyBtn = `<button class="btn-base btn-sm btn-modify" onclick="AppController.openModal('modify', ${index})">🛠 修改</button>`;
                 let deleteBtn = `<button class="btn-base btn-sm btn-delete" onclick="AppController.openModal('delete', ${index})">🗑️ 刪除</button>`;
 
                 buttonsHtml = `<div class="action-btn-group">${mainBtn}${modifyBtn}${deleteBtn}</div>`;
             }
 
-            // Log Tooltip
-            const logText = item.logs.join("\n");
+            const logText = (item.logs || []).join("\n");
             const logHtml = `<div class="tooltip-container">📝<span class="tooltip-text">${logText}</span></div>`;
 
             return `
@@ -414,7 +423,6 @@
             `;
         },
 
-        // 處理 Modal 內容
         showModal: (action, index) => {
             const modal = document.getElementById('customModal');
             const modalTitle = document.getElementById('modalTitle').querySelector('span');
@@ -424,11 +432,10 @@
             const item = (index !== undefined) ? DataService.getAll()[index] : null;
 
             modal.style.display = "flex";
-            batchBtnContainer.style.display = "none"; // 預設隱藏批量按鈕
+            batchBtnContainer.style.display = "none";
             confirmBtn.style.display = "inline-block";
-            confirmBtn.className = "btn-confirm-modal"; // 重置顏色
+            confirmBtn.className = "btn-confirm-modal";
 
-            // 根據 action 渲染 Modal 內容
             if (action === 'add') {
                 modalTitle.innerText = "新增採購訂單";
                 batchBtnContainer.style.display = "flex";
@@ -441,53 +448,40 @@
                         let val = inputs[i].value.trim();
                         if (val) { DataService.add(val); count++; }
                     }
-                    if(count > 0) { AppController.renderTable(); AppController.closeModal(); }
+                    if(count > 0) { AppController.closeModal(); }
                     else { alert("請輸入至少一筆資料"); }
                 };
-
-            } else if (action === 'delete') { // 需求 2: 刪除 (原取消)
+            } else if (action === 'delete') {
                 modalTitle.innerText = "確認刪除";
-                modalBody.innerHTML = `
-                    <div style="color: #c0392b; font-weight: bold; margin-bottom: 10px;">⚠️ 您確定要刪除這筆採購嗎？</div>
-                    <div>訂單編號：<b>${item.id}</b></div>
-                    <div style="font-size:12px; margin-top:5px; color:#666;">(此為軟刪除，狀態將變更為紅色「採購取消」)</div>`;
+                modalBody.innerHTML = `<div style="color:#c0392b;font-weight:bold;margin-bottom:10px;">⚠️ 確定要刪除？</div><div>編號：<b>${item.id}</b></div>`;
                 confirmBtn.innerText = "確認刪除";
                 confirmBtn.className = "btn-danger-modal";
-                confirmBtn.onclick = () => { DataService.delete(index); AppController.renderTable(); AppController.closeModal(); };
-
-            } else if (action === 'revertOrder') { // 需求 1: 取消下單
+                confirmBtn.onclick = () => { DataService.delete(index); AppController.closeModal(); };
+            } else if (action === 'revertOrder') {
                 modalTitle.innerText = "確認取消下單";
-                modalBody.innerHTML = `
-                    <div style="color: #7f8c8d; font-weight: bold; margin-bottom: 10px;">↩️ 確定要退回還沒下單的狀態嗎？</div>
-                    <div>訂單編號：<b>${item.id}</b></div>
-                    <div style="font-size:12px; margin-top:5px; color:#666;">(這將會清除下單時間紀錄，並回到「已填SAP」狀態)</div>`;
+                modalBody.innerHTML = `<div style="color:#7f8c8d;font-weight:bold;margin-bottom:10px;">↩️ 確定要退回？</div><div>編號：<b>${item.id}</b></div>`;
                 confirmBtn.innerText = "確認退回";
-                confirmBtn.onclick = () => { DataService.revertOrder(index); AppController.renderTable(); AppController.closeModal(); };
-
+                confirmBtn.onclick = () => { DataService.revertOrder(index); AppController.closeModal(); };
             } else if (action === 'restore') {
                 modalTitle.innerText = "確認恢復";
-                modalBody.innerHTML = `<div style="color: #27ae60; font-weight: bold;">♻️ 確定要恢復這筆採購嗎？</div>`;
+                modalBody.innerHTML = `<div style="color:#27ae60;font-weight:bold;">♻️ 確定恢復？</div>`;
                 confirmBtn.innerText = "恢復採購";
-                confirmBtn.onclick = () => { DataService.restore(index); AppController.renderTable(); AppController.closeModal(); };
-
+                confirmBtn.onclick = () => { DataService.restore(index); AppController.closeModal(); };
             } else if (action === 'confirmOrder') {
                 modalTitle.innerText = "最終確認";
-                modalBody.innerHTML = `<div style="text-align:center; padding:10px;">確定 <b>${item.id}</b> 已向原廠完成下單？<br><span style="font-size:12px; color:red;">(此動作將標記流程為已完成)</span></div>`;
+                modalBody.innerHTML = `<div style="text-align:center;">確定 <b>${item.id}</b> 已下單？</div>`;
                 confirmBtn.innerText = "確認已下單";
-                confirmBtn.onclick = () => { DataService.confirmOrder(index); AppController.renderTable(); AppController.closeModal(); };
-
+                confirmBtn.onclick = () => { DataService.confirmOrder(index); AppController.closeModal(); };
             } else if (action === 'fillPur') {
                 modalTitle.innerText = `填寫 PUR 單號`;
                 modalBody.innerHTML = `<div class="modal-label">PUR 單號：</div><input type="text" id="mInput" class="modal-input" value="${item.pur.val}">`;
                 confirmBtn.innerText = "儲存";
-                confirmBtn.onclick = () => { const val = document.getElementById('mInput').value; if(val) { DataService.updateField(index, 'pur', val); AppController.renderTable(); AppController.closeModal(); } };
-
+                confirmBtn.onclick = () => { const val = document.getElementById('mInput').value; if(val) { DataService.updateField(index, 'pur', val); AppController.closeModal(); } };
             } else if (action === 'fillSap') {
                 modalTitle.innerText = `填寫 SAP 單號`;
                 modalBody.innerHTML = `<div class="modal-label">SAP 單號：</div><input type="text" id="mInput" class="modal-input" value="${item.sap.val}">`;
                 confirmBtn.innerText = "儲存";
-                confirmBtn.onclick = () => { const val = document.getElementById('mInput').value; if(val) { DataService.updateField(index, 'sap', val); AppController.renderTable(); AppController.closeModal(); } };
-
+                confirmBtn.onclick = () => { const val = document.getElementById('mInput').value; if(val) { DataService.updateField(index, 'sap', val); AppController.closeModal(); } };
             } else if (action === 'modify') {
                 modalTitle.innerText = "修改訂單資料";
                 modalBody.innerHTML = `
@@ -497,15 +491,14 @@
                 confirmBtn.innerText = "儲存修改";
                 confirmBtn.onclick = () => { 
                     DataService.modify(index, document.getElementById('modId').value, document.getElementById('modPur').value, document.getElementById('modSap').value); 
-                    AppController.renderTable(); AppController.closeModal(); 
+                    AppController.closeModal(); 
                 };
-
             } else if (action === 'filter') {
                 modalTitle.innerText = "篩選條件設定";
                 modalBody.innerHTML = `
                     <div class="modal-label">建立年度：</div>
                     <select id="fYear" class="modal-select">
-                        <option value="All">全部年度</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
+                        <option value="All">全部年度</option><option value="2025">2025</option><option value="2026">2026</option>
                     </select>
                     <div class="modal-label">目前狀態：</div>
                     <select id="fStatus" class="modal-select">
@@ -522,7 +515,6 @@
             }
         },
 
-        // 增加批量輸入框
         appendBatchInputs: (count) => {
             const area = document.getElementById('batchInputArea');
             for(let i=0; i<count; i++) {
@@ -533,7 +525,6 @@
         }
     };
 
-    // 啟動程式
     AppController.init();
     window.onclick = function(event) { if (event.target == document.getElementById('customModal')) AppController.closeModal(); }
 </script>
