@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>中區 QIAGEN 採購流程進度表 (升級版)</title>
+    <title>中區 QIAGEN 採購流程進度表 (圖示按鈕版)</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -18,10 +18,46 @@
         .toolbar-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .toolbar-left { display: flex; gap: 10px; align-items: center; }
 
-        .btn-base { border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; font-weight: bold; transition: 0.2s; }
+        .btn-base { border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; font-weight: bold; transition: 0.2s; position: relative; }
         .btn-lg { padding: 10px 20px; font-size: 15px; }
         .btn-sm { padding: 6px 12px; font-size: 13px; color: white; white-space: nowrap; }
         
+        /* 純圖示按鈕專用樣式 (新增) */
+        .btn-icon { padding: 6px 10px; font-size: 16px; min-width: 36px; }
+
+        /* 按鈕 Tooltip (新增：滑鼠過去顯示文字) */
+        .btn-base[data-title]:hover::after {
+            content: attr(data-title);
+            position: absolute;
+            bottom: 115%; /* 顯示在按鈕上方 */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: #fff;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 100;
+            opacity: 0;
+            animation: fadeInTooltip 0.2s forwards;
+            pointer-events: none;
+        }
+        /* Tooltip 小箭頭 */
+        .btn-base[data-title]:hover::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+            opacity: 0;
+            animation: fadeInTooltip 0.2s forwards;
+        }
+        @keyframes fadeInTooltip { to { opacity: 1; } }
+
         .btn-add { background-color: #e67e22; color: white; } .btn-add:hover { background-color: #d35400; }
         .btn-filter { background-color: #34495e; color: white; } .btn-filter:hover { background-color: #2c3e50; }
         
@@ -31,7 +67,6 @@
         .btn-delete { background-color: #c0392b; } .btn-delete:hover { background-color: #a93226; } 
         .btn-restore { background-color: #2ecc71; } .btn-restore:hover { background-color: #27ae60; } 
         .btn-revert { background-color: #7f8c8d; } .btn-revert:hover { background-color: #616a6b; } 
-        /* 新增備註按鈕顏色 */
         .btn-note { background-color: #8e44ad; } .btn-note:hover { background-color: #732d91; }
 
         .search-box { padding: 10px 12px; border: 1px solid #ccc; border-radius: 5px; width: 250px; font-size: 14px; }
@@ -55,7 +90,6 @@
         
         .action-btn-group { display: flex; justify-content: center; align-items: center; gap: 5px; white-space: nowrap; }
         .timestamp { display: block; font-size: 11px; color: #888; margin-top: 2px; }
-        /* 新增 QIAGEN 單號樣式 */
         .qiagen-text { display: block; font-size: 12px; color: #2980b9; font-weight: bold; margin-top: 4px; }
 
         .tooltip-container { position: relative; display: inline-block; cursor: pointer; color: #555; font-size: 18px; margin: 0 3px;}
@@ -63,7 +97,6 @@
         .tooltip-container .tooltip-text::after { content: ""; position: absolute; top: 15px; right: 100%; margin-top: -5px; border-width: 5px; border-style: solid; border-color: transparent #333 transparent transparent; }
         .tooltip-container:hover .tooltip-text { visibility: visible; opacity: 1; }
 
-        /* 新增驚嘆號樣式 */
         .note-badge { color: #c0392b; font-weight: bold; font-size: 20px; }
 
         .modal-overlay { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
@@ -106,12 +139,14 @@
         <thead>
             <tr>
                 <th style="width: 100px;">建立日期</th>
-                <th style="width: 70px;">紀錄/備註</th> <th style="width: 140px;">訂單/庫存編號</th>
+                <th style="width: 70px;">紀錄/備註</th>
+                <th style="width: 140px;">訂單/庫存編號</th>
                 <th>PUR 單號資訊</th>
                 <th>SAP 單號資訊</th>
                 <th>最終下單確認</th>
                 <th style="width: 120px;">狀態</th>
-                <th style="width: 280px;">執行操作</th> </tr>
+                <th style="width: 280px;">執行操作</th>
+            </tr>
         </thead>
         <tbody id="tableBody"></tbody>
     </table>
@@ -207,9 +242,7 @@
                 timestamp: Date.now(), 
                 pur: { val: "", time: "" }, 
                 sap: { val: "", time: "" }, 
-                // 新增 qiagenNo 欄位在 ordered 物件中
                 ordered: { val: "", time: "", qiagenNo: "" },
-                // 新增備註欄位
                 note: "",
                 status: Config.status.NEW,
                 logs: [`${timeStr} - ${Config.currentUser} - 建立訂單 (${id})`]
@@ -243,7 +276,6 @@
             DataService._update(index, updates);
         },
 
-        // 修改：確認下單現在需要接收 QIAGEN 單號
         confirmOrder: (index, qiagenNo) => {
             const item = DataService._localData[index];
             const timeStr = Utils.getTimeStr();
@@ -256,18 +288,11 @@
             });
         },
 
-        // 新增：更新備註
         updateNote: (index, noteContent) => {
             const item = DataService._localData[index];
             const timeStr = Utils.getTimeStr();
-            // 如果原本沒有備註，現在有，就加Log；如果原本有，現在變更，也加Log (選用)
-            // 這裡簡單處理，只要有更新都記錄 Log
             let newLogs = [...(item.logs || []), `${timeStr} - ${Config.currentUser} - 更新備註`];
-            
-            DataService._update(index, {
-                note: noteContent,
-                logs: newLogs
-            });
+            DataService._update(index, { note: noteContent, logs: newLogs });
         },
 
         revertOrder: (index) => {
@@ -410,25 +435,27 @@
                     mainBtn = `<button class="btn-base btn-sm btn-revert" onclick="AppController.openModal('revertOrder', ${index})">↩️ 取消下單</button>`;
                 }
 
-                let modifyBtn = `<button class="btn-base btn-sm btn-modify" onclick="AppController.openModal('modify', ${index})">🛠 修改</button>`;
-                // 新增：備註按鈕
-                let noteBtn = `<button class="btn-base btn-sm btn-note" onclick="AppController.openModal('note', ${index})">📝 備註</button>`;
-                let deleteBtn = `<button class="btn-base btn-sm btn-delete" onclick="AppController.openModal('delete', ${index})">🗑️ 刪除</button>`;
+                // --- 修改重點 ---
+                // 修改按鈕現在是純圖示 (🛠)，並帶有 data-title="修改"
+                let modifyBtn = `<button class="btn-base btn-sm btn-modify btn-icon" data-title="修改" onclick="AppController.openModal('modify', ${index})">🛠</button>`;
+                
+                // 備註按鈕現在是純圖示 (📝)，並帶有 data-title="備註"
+                let noteBtn = `<button class="btn-base btn-sm btn-note btn-icon" data-title="備註" onclick="AppController.openModal('note', ${index})">📝</button>`;
+                
+                // 刪除按鈕現在是純圖示 (🗑️)，並帶有 data-title="刪除"
+                let deleteBtn = `<button class="btn-base btn-sm btn-delete btn-icon" data-title="刪除" onclick="AppController.openModal('delete', ${index})">🗑️</button>`;
 
                 buttonsHtml = `<div class="action-btn-group">${mainBtn}${noteBtn}${modifyBtn}${deleteBtn}</div>`;
             }
 
-            // 處理 Log 顯示
             const logText = (item.logs || []).join("\n");
             const logHtml = `<div class="tooltip-container">📝<span class="tooltip-text">${logText}</span></div>`;
             
-            // 處理 備註顯示 (驚嘆號)
             let noteHtml = "";
             if (item.note && item.note.trim() !== "") {
                 noteHtml = `<div class="tooltip-container note-badge">❗<span class="tooltip-text">${item.note}</span></div>`;
             }
 
-            // 處理 QIAGEN 單號顯示
             let orderedDisplay = item.ordered.val || '--';
             let orderedTime = item.ordered.time ? `<span class="timestamp">(${item.ordered.time})</span>` : '';
             let qiagenDisplay = "";
@@ -495,7 +522,6 @@
                 confirmBtn.innerText = "恢復採購";
                 confirmBtn.onclick = () => { DataService.restore(index); AppController.closeModal(); };
             } else if (action === 'confirmOrder') {
-                // 修改：最終確認時，增加輸入 QIAGEN 單號的欄位
                 modalTitle.innerText = "最終下單確認";
                 modalBody.innerHTML = `
                     <div style="margin-bottom:15px; text-align:center;">確定 <b>${item.id}</b> 已向原廠完成下單？</div>
@@ -513,7 +539,6 @@
                     }
                 };
             } else if (action === 'note') {
-                // 新增：備註 Modal
                 modalTitle.innerText = "編輯備註";
                 modalBody.innerHTML = `
                     <div class="modal-label">備註內容：</div>
