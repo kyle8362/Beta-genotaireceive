@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="robots" content="noindex, nofollow">
-    <title>中區收送件進度追蹤系統 (v68 Final Stable)</title>
+    <title>中區收送件進度追蹤系統 (v69 Data Recovered)</title>
 
     <script src="https://unpkg.com/firebase@9.22.2/firebase-app-compat.js"></script>
     <script src="https://unpkg.com/firebase@9.22.2/firebase-firestore-compat.js"></script>
@@ -33,17 +33,10 @@
         #app-screen { display: flex; width: 100%; height: 100%; position: relative; }
         
         aside { 
-            width: 280px; 
-            min-width: 280px; 
-            flex-shrink: 0; 
-            background: var(--sidebar-bg); 
-            border-right: 1px solid var(--border); 
-            display: flex; 
-            flex-direction: column; 
-            box-sizing: border-box; 
-            transition: transform 0.3s ease; 
-            padding: 0; 
-            z-index: 50; 
+            width: 280px; min-width: 280px; flex-shrink: 0; 
+            background: var(--sidebar-bg); border-right: 1px solid var(--border); 
+            display: flex; flex-direction: column; box-sizing: border-box; 
+            transition: transform 0.3s ease; padding: 0; z-index: 50; 
         }
         
         .sidebar-fixed { padding: 1.5rem 1.5rem 0.5rem 1.5rem; flex-shrink: 0; background: var(--sidebar-bg); z-index: 10; border-bottom: 1px solid #f3f4f6; }
@@ -299,8 +292,8 @@
         <h2 id="auth-title" style="color:#0f766e">系統登入</h2>
         <input type="text" id="username" placeholder="帳號" autofocus>
         <input type="password" id="password" placeholder="密碼">
-        <button class="auth-btn" id="btnAuthAction" onclick="handleAuth()">登入</button>
-        <div class="switch-auth" id="switchAuthLink" onclick="toggleAuthMode()">沒有帳號？註冊新帳號</div>
+        <button class="auth-btn" id="btnAuthAction" onclick="window.handleAuth()">登入</button>
+        <div class="switch-auth" id="switchAuthLink" onclick="window.toggleAuthMode()">沒有帳號？註冊新帳號</div>
     </div>
 </div>
 
@@ -311,34 +304,34 @@
                 <div class="avatar" id="userAvatar">U</div>
                 <div>
                     <div style="font-weight: 600;" id="displayUsername">User</div>
-                    <div class="logout-link" onclick="logout()">登出帳號</div>
+                    <div class="logout-link" onclick="window.logout()">登出帳號</div>
                 </div>
             </div>
             
-            <button class="sidebar-btn btn-nav-active" id="btnTabTasks" onclick="switchTab('tasks')">📋 任務看板</button>
-            <button class="sidebar-btn btn-client-search" id="btnTabCustomers" onclick="switchTab('customers')">🏢 客戶位置查詢</button>
+            <button class="sidebar-btn btn-nav-active" id="btnTabTasks" onclick="window.switchTab('tasks')">📋 任務看板</button>
+            <button class="sidebar-btn btn-client-search" id="btnTabCustomers" onclick="window.switchTab('customers')">🏢 客戶位置查詢</button>
             <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
         </div>
 
         <div class="sidebar-scroll">
-            <div class="admin-btn btn-purchase" id="purchaseBtn" onclick="switchTab('purchase')" style="display:none;">📦 QIAGEN 採購進度</div>
-            <div class="admin-btn btn-perm" id="adminPanelBtn" onclick="openUserModal()">👥 成員權限管理</div>
-            <div class="admin-btn btn-settings" id="salesSettingsBtn" onclick="openSalesSettings()">⚙️ 標籤選單後台設定</div>
-            <div class="admin-btn btn-assign-settings" id="assignSettingsBtn" onclick="openAssignSettingsModal()">👤 指派任務帳號設定</div>
-            <div class="admin-btn btn-import" id="importBtn" onclick="openImportModal()">📥 批量匯入任務</div>
-            <div class="admin-btn btn-stats" id="statsPanelBtn" onclick="openStatsModal()">📊 任務完成統整</div>
+            <div class="admin-btn btn-purchase" id="purchaseBtn" onclick="window.switchTab('purchase')" style="display:none;">📦 QIAGEN 採購進度</div>
+            <div class="admin-btn btn-perm" id="adminPanelBtn" onclick="window.openUserModal()">👥 成員權限管理</div>
+            <div class="admin-btn btn-settings" id="salesSettingsBtn" onclick="window.openSalesSettings()">⚙️ 標籤選單後台設定</div>
+            <div class="admin-btn btn-assign-settings" id="assignSettingsBtn" onclick="window.openAssignSettingsModal()">👤 指派任務帳號設定</div>
+            <div class="admin-btn btn-import" id="importBtn" onclick="window.openImportModal()">📥 批量匯入任務</div>
+            <div class="admin-btn btn-stats" id="statsPanelBtn" onclick="window.openStatsModal()">📊 任務完成統整</div>
             
             <div class="sidebar-section" id="taskSearchSection">
                 <h3>🔍 搜尋任務</h3>
                 <div class="search-box">
-                    <input type="text" id="searchTaskInput" placeholder="輸入關鍵字..." oninput="handleSearch()">
+                    <input type="text" id="searchTaskInput" placeholder="輸入關鍵字..." oninput="window.handleSearch()">
                     <ul class="search-results" id="searchResults"></ul>
                 </div>
             </div>
 
             <div class="sidebar-section" id="taskDateSection">
                 <h3>📅 日期選擇</h3>
-                <input type="date" id="dateSearch" onchange="changeDate(this.value)">
+                <input type="date" id="dateSearch" onchange="window.changeDate(this.value)">
             </div>
             
             <div class="sidebar-section" style="margin-top:20px;">
@@ -359,7 +352,7 @@
                 </div>
             </header>
             <div class="task-container" id="taskListContainer"></div>
-            <button class="fab" onclick="openModal()">+</button>
+            <button class="fab" onclick="window.openModal()">+</button>
         </div>
 
         <div id="customerView" class="view-section">
@@ -368,7 +361,7 @@
                 <div class="date-header">位置即時查詢系統</div>
             </header>
             <div class="cust-header">
-                <input type="text" id="custSearchInput" class="cust-search-bar" placeholder="輸入客戶名稱、樓層或關鍵字..." oninput="handleCustomerSearch()">
+                <input type="text" id="custSearchInput" class="cust-search-bar" placeholder="輸入客戶名稱、樓層或關鍵字..." oninput="window.handleCustomerSearch()">
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSeeq6mOlxQW88SQQGeZA_N9HDnAl_kGlr4Y50n6oqPw5JrKvg/viewform?usp=dialog" target="_blank" class="btn-google-form">➕ 申請新增/修改</a>
             </div>
             <div id="custLoading" class="loading-spinner" style="display:none;">
@@ -418,22 +411,22 @@
         <div class="import-guide">請將 Excel 中的任務名稱複製，並貼在下方 (一行一筆)。</div>
         <textarea id="importTextarea" placeholder="範例：&#10;台大醫院-陳教授-WES收件&#10;長庚醫院-林醫師-DNA萃取"></textarea>
         <div style="margin-top:15px;"><label style="font-weight:bold;">匯入至哪個項目：</label><select id="importCategorySelect" style="width:100%; padding:8px; margin-top:5px; border-radius:4px; border:1px solid #ccc;"></select></div>
-        <div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('importModal').style.display='none'">取消</button><button class="btn btn-save" onclick="processImport()">確認匯入</button></div>
+        <div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('importModal').style.display='none'">取消</button><button class="btn btn-save" onclick="window.processImport()">確認匯入</button></div>
     </div>
 </div>
 
-<div class="modal-overlay" id="taskModal"><div class="modal-card"><h2 id="modalTitle" style="margin-top:0; color:#111827;">新增案件/任務</h2><div class="input-group"><label>歸屬項目</label><select id="inputCategory" onchange="handleCategoryChange()"><option value="定序收件">📂 定序收件</option><option value="引子送件">🚀 引子送件</option><option value="產前收件">📦 產前收件</option><option value="業務交辦事項">📋 業務交辦事項</option><option value="NGS收件">🧬 NGS 收件 (需填詳細資料)</option></select></div><div id="ngs-form-container"><h4 style="margin-top:0; color:#0f766e;">📝 NGS 詳細資料 (必填)</h4><div class="ngs-row"><label>1. 單位</label><input type="text" id="ngsUnit" placeholder="輸入單位" oninput="generateNgsTitle()"></div><div class="ngs-row"><label>2. 主持人</label><input type="text" id="ngsPI" placeholder="輸入主持人" oninput="generateNgsTitle()"></div><div class="ngs-row"><label>3. 樣本處理需求</label><select id="ngsNeeds" onchange="handleNgsNeedsChange(); generateNgsTitle()"><option value="">請選擇</option><option value="萃取">萃取 (Extraction)</option><option value="QC">QC</option></select></div><div id="ngs-extraction-fields"><div class="ngs-row"><label>4-1.1 檢體種類</label><select id="ngsSampleTypeSelect" onchange="handleDropdownChange('ngsSampleTypeSelect', 'ngsSampleTypeInput')"><option value="Cell">Cell</option><option value="Blood">Blood</option><option value="Tissue">Tissue</option><option value="Plant">Plant</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsSampleTypeInput" placeholder="請輸入檢體種類" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-1.2 保存溫度</label><select id="ngsTemp"><option value="常溫">常溫</option><option value="4°C">4°C</option><option value="-20°C">-20°C</option><option value="-80°C">-80°C</option></select></div><div class="ngs-row"><label>4-1.3 歸還</label><select id="ngsReturn"><option value="是">是</option><option value="否">否</option></select></div><div class="ngs-row"><label>4-1.4 樣本數量</label><input type="text" id="ngsCount" placeholder="填寫數量"></div><div class="ngs-row"><label>4-1.5 後續實驗種類</label><select id="ngsExpTypeSelect" onchange="handleDropdownChange('ngsExpTypeSelect', 'ngsExpTypeInput'); generateNgsTitle()"><option value="">請選擇</option><option value="Seq Only">Seq Only</option><option value="DGE">DGE</option><option value="Small RNA">Small RNA</option><option value="WES">WES</option><option value="WGS">WGS</option><option value="PIPseq">PIPseq</option><option value="Amplicon Sequence">Amplicon Sequence</option><option value="細菌WGS">細菌WGS</option><option value="metagenome">metagenome</option><option value="16s">16s</option><option value="16sFL">16sFL</option><option value="Olink">Olink</option><option value="10x">10x</option><option value="RADseq">RADseq</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsExpTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;" oninput="generateNgsTitle()"></div><div class="ngs-row"><label>4-1.6 實驗平台</label><select id="ngsPlatformSelect" onchange="handleDropdownChange('ngsPlatformSelect', 'ngsPlatformInput')"><option value="Novaseq X Plus">Novaseq X Plus</option><option value="Miseq">Miseq</option><option value="PacBio">PacBio</option><option value="Nanopore">Nanopore</option><option value="Olink">Olink</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsPlatformInput" placeholder="輸入平台" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-1.7 負責業務</label><select id="ngsSales"></select></div></div><div id="ngs-qc-fields"><div class="ngs-row"><label>4-2.1 核酸種類</label><select id="ngsNucleicTypeSelect" onchange="handleDropdownChange('ngsNucleicTypeSelect', 'ngsNucleicTypeInput'); generateNgsTitle()"><option value="">請選擇</option><option value="DNA">DNA</option><option value="RNA">RNA</option><option value="Library">Library</option><option value="miRNA">miRNA</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsNucleicTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;" oninput="generateNgsTitle()"></div><div class="ngs-row"><label>4-2.2 保存溫度</label><select id="ngsQcTemp"><option value="常溫">常溫</option><option value="4°C">4°C</option><option value="-20°C">-20°C</option><option value="-80°C">-80°C</option></select></div><div class="ngs-row"><label>4-2.3 歸還</label><select id="ngsQcReturn"><option value="是">是</option><option value="否">否</option></select></div><div class="ngs-row"><label>4-2.4 樣本數量</label><input type="text" id="ngsQcCount" placeholder="填寫數量"></div><div class="ngs-row"><label>4-2.5 後續實驗種類</label><select id="ngsQcExpTypeSelect" onchange="handleDropdownChange('ngsQcExpTypeSelect', 'ngsQcExpTypeInput')"><option value="">請選擇</option><option value="Seq Only">Seq Only</option><option value="DGE">DGE</option><option value="Small RNA">Small RNA</option><option value="WES">WES</option><option value="WGS">WGS</option><option value="PIPseq">PIPseq</option><option value="Amplicon Sequence">Amplicon Sequence</option><option value="細菌WGS">細菌WGS</option><option value="metagenome">metagenome</option><option value="16s">16s</option><option value="16sFL">16sFL</option><option value="Olink">Olink</option><option value="10x">10x</option><option value="RADseq">RADseq</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsQcExpTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-2.6 實驗平台</label><select id="ngsQcPlatformSelect" onchange="handleDropdownChange('ngsQcPlatformSelect', 'ngsQcPlatformInput')"><option value="Novaseq X Plus">Novaseq X Plus</option><option value="Miseq">Miseq</option><option value="PacBio">PacBio</option><option value="Nanopore">Nanopore</option><option value="Olink">Olink</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsQcPlatformInput" placeholder="輸入平台" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-2.7 負責業務</label><select id="ngsQcSales"></select></div></div></div><div class="input-group"><label>任務內容 (選取文字可編輯樣式)</label><div class="editor-toolbar"><button class="tool-btn" onclick="formatDoc('bold')" title="粗體"><b>B</b></button><div class="separator"></div><button class="tool-btn" onclick="formatDoc('foreColor', '#ef4444')" title="紅字"><span class="color-dot" style="background:#ef4444"></span></button><button class="tool-btn" onclick="formatDoc('foreColor', '#2563eb')" title="藍字"><span class="color-dot" style="background:#2563eb"></span></button><button class="tool-btn" onclick="formatDoc('foreColor', '#10b981')" title="綠字"><span class="color-dot" style="background:#10b981"></span></button><button class="tool-btn" onclick="formatDoc('foreColor', '#000000')" title="黑字"><span class="color-dot" style="background:#000000"></span></button><div class="separator"></div><button class="tool-btn" onclick="formatDoc('hiliteColor', '#fecaca')" title="紅底" style="background:#fecaca">A</button><button class="tool-btn" onclick="formatDoc('hiliteColor', '#bfdbfe')" title="藍底" style="background:#bfdbfe">A</button><button class="tool-btn" onclick="formatDoc('hiliteColor', '#bbf7d0')" title="綠底" style="background:#bbf7d0">A</button><button class="tool-btn" onclick="formatDoc('hiliteColor', '#ffffff')" title="無底" style="background:#fff">✕</button><div class="separator"></div><select class="tool-select" onchange="formatDoc('fontSize', this.value); this.value='';" title="字體大小"><option value="">字體大小</option><option value="2">小</option><option value="3">中</option><option value="5">大</option><option value="7">特大</option></select></div><div id="inputTitle" contenteditable="true" placeholder="輸入內容..."></div></div><div class="modal-btns"><button class="btn btn-cancel" onclick="closeModal()">取消</button><button class="btn btn-save" id="btnSaveTask" onclick="saveTask()">確認</button></div></div></div>
+<div class="modal-overlay" id="taskModal"><div class="modal-card"><h2 id="modalTitle" style="margin-top:0; color:#111827;">新增案件/任務</h2><div class="input-group"><label>歸屬項目</label><select id="inputCategory" onchange="window.handleCategoryChange()"><option value="定序收件">📂 定序收件</option><option value="引子送件">🚀 引子送件</option><option value="產前收件">📦 產前收件</option><option value="業務交辦事項">📋 業務交辦事項</option><option value="NGS收件">🧬 NGS 收件 (需填詳細資料)</option></select></div><div id="ngs-form-container"><h4 style="margin-top:0; color:#0f766e;">📝 NGS 詳細資料 (必填)</h4><div class="ngs-row"><label>1. 單位</label><input type="text" id="ngsUnit" placeholder="輸入單位" oninput="window.generateNgsTitle()"></div><div class="ngs-row"><label>2. 主持人</label><input type="text" id="ngsPI" placeholder="輸入主持人" oninput="window.generateNgsTitle()"></div><div class="ngs-row"><label>3. 樣本處理需求</label><select id="ngsNeeds" onchange="window.handleNgsNeedsChange(); window.generateNgsTitle()"><option value="">請選擇</option><option value="萃取">萃取 (Extraction)</option><option value="QC">QC</option></select></div><div id="ngs-extraction-fields"><div class="ngs-row"><label>4-1.1 檢體種類</label><select id="ngsSampleTypeSelect" onchange="window.handleDropdownChange('ngsSampleTypeSelect', 'ngsSampleTypeInput')"><option value="Cell">Cell</option><option value="Blood">Blood</option><option value="Tissue">Tissue</option><option value="Plant">Plant</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsSampleTypeInput" placeholder="請輸入檢體種類" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-1.2 保存溫度</label><select id="ngsTemp"><option value="常溫">常溫</option><option value="4°C">4°C</option><option value="-20°C">-20°C</option><option value="-80°C">-80°C</option></select></div><div class="ngs-row"><label>4-1.3 歸還</label><select id="ngsReturn"><option value="是">是</option><option value="否">否</option></select></div><div class="ngs-row"><label>4-1.4 樣本數量</label><input type="text" id="ngsCount" placeholder="填寫數量"></div><div class="ngs-row"><label>4-1.5 後續實驗種類</label><select id="ngsExpTypeSelect" onchange="window.handleDropdownChange('ngsExpTypeSelect', 'ngsExpTypeInput'); window.generateNgsTitle()"><option value="">請選擇</option><option value="Seq Only">Seq Only</option><option value="DGE">DGE</option><option value="Small RNA">Small RNA</option><option value="WES">WES</option><option value="WGS">WGS</option><option value="PIPseq">PIPseq</option><option value="Amplicon Sequence">Amplicon Sequence</option><option value="細菌WGS">細菌WGS</option><option value="metagenome">metagenome</option><option value="16s">16s</option><option value="16sFL">16sFL</option><option value="Olink">Olink</option><option value="10x">10x</option><option value="RADseq">RADseq</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsExpTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;" oninput="window.generateNgsTitle()"></div><div class="ngs-row"><label>4-1.6 實驗平台</label><select id="ngsPlatformSelect" onchange="window.handleDropdownChange('ngsPlatformSelect', 'ngsPlatformInput')"><option value="Novaseq X Plus">Novaseq X Plus</option><option value="Miseq">Miseq</option><option value="PacBio">PacBio</option><option value="Nanopore">Nanopore</option><option value="Olink">Olink</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsPlatformInput" placeholder="輸入平台" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-1.7 負責業務</label><select id="ngsSales"></select></div></div><div id="ngs-qc-fields"><div class="ngs-row"><label>4-2.1 核酸種類</label><select id="ngsNucleicTypeSelect" onchange="window.handleDropdownChange('ngsNucleicTypeSelect', 'ngsNucleicTypeInput'); window.generateNgsTitle()"><option value="">請選擇</option><option value="DNA">DNA</option><option value="RNA">RNA</option><option value="Library">Library</option><option value="miRNA">miRNA</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsNucleicTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;" oninput="window.generateNgsTitle()"></div><div class="ngs-row"><label>4-2.2 保存溫度</label><select id="ngsQcTemp"><option value="常溫">常溫</option><option value="4°C">4°C</option><option value="-20°C">-20°C</option><option value="-80°C">-80°C</option></select></div><div class="ngs-row"><label>4-2.3 歸還</label><select id="ngsQcReturn"><option value="是">是</option><option value="否">否</option></select></div><div class="ngs-row"><label>4-2.4 樣本數量</label><input type="text" id="ngsQcCount" placeholder="填寫數量"></div><div class="ngs-row"><label>4-2.5 後續實驗種類</label><select id="ngsQcExpTypeSelect" onchange="window.handleDropdownChange('ngsQcExpTypeSelect', 'ngsQcExpTypeInput')"><option value="">請選擇</option><option value="Seq Only">Seq Only</option><option value="DGE">DGE</option><option value="Small RNA">Small RNA</option><option value="WES">WES</option><option value="WGS">WGS</option><option value="PIPseq">PIPseq</option><option value="Amplicon Sequence">Amplicon Sequence</option><option value="細菌WGS">細菌WGS</option><option value="metagenome">metagenome</option><option value="16s">16s</option><option value="16sFL">16sFL</option><option value="Olink">Olink</option><option value="10x">10x</option><option value="RADseq">RADseq</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsQcExpTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-2.6 實驗平台</label><select id="ngsQcPlatformSelect" onchange="window.handleDropdownChange('ngsQcPlatformSelect', 'ngsQcPlatformInput')"><option value="Novaseq X Plus">Novaseq X Plus</option><option value="Miseq">Miseq</option><option value="PacBio">PacBio</option><option value="Nanopore">Nanopore</option><option value="Olink">Olink</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsQcPlatformInput" placeholder="輸入平台" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-2.7 負責業務</label><select id="ngsQcSales"></select></div></div></div><div class="input-group"><label>任務內容 (選取文字可編輯樣式)</label><div class="editor-toolbar"><button class="tool-btn" onclick="window.formatDoc('bold')" title="粗體"><b>B</b></button><div class="separator"></div><button class="tool-btn" onclick="window.formatDoc('foreColor', '#ef4444')" title="紅字"><span class="color-dot" style="background:#ef4444"></span></button><button class="tool-btn" onclick="window.formatDoc('foreColor', '#2563eb')" title="藍字"><span class="color-dot" style="background:#2563eb"></span></button><button class="tool-btn" onclick="window.formatDoc('foreColor', '#10b981')" title="綠字"><span class="color-dot" style="background:#10b981"></span></button><button class="tool-btn" onclick="window.formatDoc('foreColor', '#000000')" title="黑字"><span class="color-dot" style="background:#000000"></span></button><div class="separator"></div><button class="tool-btn" onclick="window.formatDoc('hiliteColor', '#fecaca')" title="紅底" style="background:#fecaca">A</button><button class="tool-btn" onclick="window.formatDoc('hiliteColor', '#bfdbfe')" title="藍底" style="background:#bfdbfe">A</button><button class="tool-btn" onclick="window.formatDoc('hiliteColor', '#bbf7d0')" title="綠底" style="background:#bbf7d0">A</button><button class="tool-btn" onclick="window.formatDoc('hiliteColor', '#ffffff')" title="無底" style="background:#fff">✕</button><div class="separator"></div><select class="tool-select" onchange="window.formatDoc('fontSize', this.value); this.value='';" title="字體大小"><option value="">字體大小</option><option value="2">小</option><option value="3">中</option><option value="5">大</option><option value="7">特大</option></select></div><div id="inputTitle" contenteditable="true" placeholder="輸入內容..."></div></div><div class="modal-btns"><button class="btn btn-cancel" onclick="window.closeModal()">取消</button><button class="btn btn-save" id="btnSaveTask" onclick="window.saveTask()">確認</button></div></div></div>
 
-<div class="modal-overlay" id="salesSettingsModal"><div class="modal-card" style="width: 450px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">⚙️ NGS 負責業務設定</h3><div style="display:flex; gap:10px; margin-bottom:15px;"><input type="text" id="newSalesName" placeholder="輸入新業務姓名" style="flex-grow:1; padding:8px; border:1px solid #ccc; border-radius:4px;"><button class="btn btn-save" onclick="addSalesOption()">新增</button></div><ul class="settings-list" id="salesOptionList"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('salesSettingsModal').style.display='none'">關閉</button></div></div></div>
+<div class="modal-overlay" id="salesSettingsModal"><div class="modal-card" style="width: 450px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">⚙️ NGS 負責業務設定</h3><div style="display:flex; gap:10px; margin-bottom:15px;"><input type="text" id="newSalesName" placeholder="輸入新業務姓名" style="flex-grow:1; padding:8px; border:1px solid #ccc; border-radius:4px;"><button class="btn btn-save" onclick="window.addSalesOption()">新增</button></div><ul class="settings-list" id="salesOptionList"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('salesSettingsModal').style.display='none'">關閉</button></div></div></div>
 <div class="modal-overlay" id="historyModal"><div class="modal-card" style="width: 400px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📋 編輯/操作紀錄</h3><ul class="log-list" id="logList"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('historyModal').style.display='none'">關閉</button></div></div></div>
-<div class="modal-overlay" id="userModal"><div class="modal-card" style="width: 650px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">👥 成員權限管理</h3><div style="margin-bottom:10px; text-align:right;"><select id="userFilterSelect" onchange="renderUserList()" style="padding:5px; border-radius:4px; border:1px solid #ddd; font-size:0.85rem;"><option value="all">顯示全部</option><option value="creator">🟣 創世神</option><option value="senior">高級管理者</option><option value="admin">管理者</option><option value="user">一般者</option><option value="pending">待審核</option></select></div><ul class="user-list" id="userListDisplay"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('userModal').style.display='none'">關閉</button></div></div></div>
-<div class="modal-overlay" id="statsModal"><div class="modal-card" style="width: 700px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📊 任務完成統整</h3><div class="stats-filter-row"><div><label style="font-size:0.8rem;">開始日期</label><input type="date" id="statsDateStart"></div><div><label style="font-size:0.8rem;">結束日期</label><input type="date" id="statsDateEnd"></div><div><label style="font-size:0.8rem;">檢索帳號</label><select id="statsUserSelect"><option value="all">-- 所有帳號 (總覽) --</option></select></div><div style="display:flex; align-items:flex-end;"><button class="btn btn-save" onclick="updateStats()">查詢</button></div></div><div class="stats-result-area" id="statsResultDisplay"></div><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('statsModal').style.display='none'">關閉</button></div></div></div>
+<div class="modal-overlay" id="userModal"><div class="modal-card" style="width: 650px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">👥 成員權限管理</h3><div style="margin-bottom:10px; text-align:right;"><select id="userFilterSelect" onchange="window.renderUserList()" style="padding:5px; border-radius:4px; border:1px solid #ddd; font-size:0.85rem;"><option value="all">顯示全部</option><option value="creator">🟣 創世神</option><option value="senior">高級管理者</option><option value="admin">管理者</option><option value="user">一般者</option><option value="pending">待審核</option></select></div><ul class="user-list" id="userListDisplay"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('userModal').style.display='none'">關閉</button></div></div></div>
+<div class="modal-overlay" id="statsModal"><div class="modal-card" style="width: 700px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📊 任務完成統整</h3><div class="stats-filter-row"><div><label style="font-size:0.8rem;">開始日期</label><input type="date" id="statsDateStart"></div><div><label style="font-size:0.8rem;">結束日期</label><input type="date" id="statsDateEnd"></div><div><label style="font-size:0.8rem;">檢索帳號</label><select id="statsUserSelect"><option value="all">-- 所有帳號 (總覽) --</option></select></div><div style="display:flex; align-items:flex-end;"><button class="btn btn-save" onclick="window.updateStats()">查詢</button></div></div><div class="stats-result-area" id="statsResultDisplay"></div><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('statsModal').style.display='none'">關閉</button></div></div></div>
 
 <div class="modal-overlay" id="assignSettingsModal">
     <div class="modal-card" style="width: 500px;">
         <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">👤 指派任務帳號設定</h3>
         <div id="assignRulesContainer"></div>
-        <div style="text-align:right; margin-top:15px;"><button class="btn btn-save" onclick="saveAssignmentRules()">儲存設定</button></div>
+        <div style="text-align:right; margin-top:15px;"><button class="btn btn-save" onclick="window.saveAssignmentRules()">儲存設定</button></div>
         <div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('assignSettingsModal').style.display='none'">關閉</button></div>
     </div>
 </div>
@@ -499,7 +492,7 @@
     const rtdb = purchaseApp.database();
 
     // ==========================================
-    // 2. GLOBAL VARIABLES & CONSTANTS
+    // 2. GLOBAL VARIABLES
     // ==========================================
     const ORDERED_CATEGORIES = ["定序收件", "引子送件", "產前收件", "業務交辦事項", "NGS收件"];
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw9sCxtJ-rcRLdkwwGJgBCUCKxCFXujD4Ciq_fJxFqbly4Wldb-9nTSE5kqTst16hKg2Q/exec";
@@ -879,12 +872,12 @@
     }
 
     window.getDropdownOrInput = function(selectId, inputId) { const sel = document.getElementById(selectId).value; return (sel === '其他') ? document.getElementById(inputId).value.trim() : sel; }
-    window.updateTaskDb = function(id, data, logType, logDesc) { const task = state.tasks.find(t => t.id === id); const newLogs = task.logs || []; newLogs.unshift({ type: logType, desc: logDesc, user: state.currentUser.name, time: new Date().toISOString() }); db.collection('tasks').doc(id).update({ ...data, logs: newLogs }); }
     window.toggleTask = function(id) { const task = state.tasks.find(t => t.id === id); if(task) { const newVal = !task.completed; updateTaskDb(id, { completed: newVal, completedBy: newVal ? state.currentUser.name : null, completedAt: newVal ? new Date().toISOString() : null }, newVal ? '完成' : '重啟', newVal ? '標記為完成' : '取消完成狀態'); } }
+    window.updateTaskDb = function(id, data, logType, logDesc) { const task = state.tasks.find(t => t.id === id); const newLogs = task.logs || []; newLogs.unshift({ type: logType, desc: logDesc, user: state.currentUser.name, time: new Date().toISOString() }); db.collection('tasks').doc(id).update({ ...data, logs: newLogs }); }
+    window.showHistory = function(id) { const t = state.tasks.find(x=>x.id===id); if(!t) return; const list = document.getElementById('logList'); list.innerHTML=''; (t.logs||[]).forEach(l => { const d=new Date(l.time); const timeStr=`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes()}`; const userDisp = getUserDisplayName(l.user); list.innerHTML+=`<li class="log-item"><div class="log-time">${timeStr}</div><div class="log-content"><span class="log-user">${userDisp}</span> ${l.desc}</div></li>`; }); document.getElementById('historyModal').style.display='flex'; }
     window.restoreTask = function(id) { updateTaskDb(id, { isDeleted: false }, '還原', '從刪除項目中還原'); }
     window.deleteTask = function(id) { if(confirm('移至被刪除項目？')) updateTaskDb(id, { isDeleted: true }, '刪除', '移至被刪除項目'); }
-    window.showHistory = function(id) { const t = state.tasks.find(x=>x.id===id); if(!t) return; const list = document.getElementById('logList'); list.innerHTML=''; (t.logs||[]).forEach(l => { const d=new Date(l.time); const timeStr=`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes()}`; const userDisp = getUserDisplayName(l.user); list.innerHTML+=`<li class="log-item"><div class="log-time">${timeStr}</div><div class="log-content"><span class="log-user">${userDisp}</span> ${l.desc}</div></li>`; }); document.getElementById('historyModal').style.display='flex'; }
-
+    
     window.openAssignModal = function(taskId, category) {
         assigningTaskId = taskId; const list = document.getElementById('assignUserList'); list.innerHTML = '';
         const allowedUsers = state.assignmentRules[category] || [];
@@ -957,9 +950,11 @@
         try {
             if (title.includes('註冊')) {
                 if (u.toLowerCase() === 'admin') throw new Error('不可使用 Admin 作為帳號');
-                const q = await db.collection('users').where('username', '==', u).get(); if (!q.empty) throw new Error('帳號已存在');
+                const q = await db.collection('users').where('username', '==', u).get(); 
+                if (!q.empty) throw new Error('帳號已存在');
                 await db.collection('users').add({ username: u, password: p, isApproved: false, role: 'user', remarks: '', nickname: '' });
-                alert('註冊成功！待管理員核准後方可登入。'); toggleAuthMode();
+                alert('註冊成功！待管理員核准後方可登入。'); 
+                toggleAuthMode();
             } else {
                 if (u === 'Admin' && p === 'Abcd1234') {
                     const q = await db.collection('users').where('username', '==', 'Admin').get();
@@ -967,10 +962,16 @@
                     loginSuccess('Admin', 'creator');
                 } else {
                     const q = await db.collection('users').where('username', '==', u).where('password', '==', p).get();
-                    if (q.empty) alert('帳號或密碼錯誤'); else { const user = q.docs[0].data(); if (!user.isApproved) alert('⚠️ 您的帳號尚未通過審核。'); else loginSuccess(user.username, user.role || 'user'); }
+                    if (q.empty) alert('帳號或密碼錯誤'); 
+                    else { 
+                        const user = q.docs[0].data(); 
+                        if (!user.isApproved) alert('⚠️ 您的帳號尚未通過審核。'); 
+                        else loginSuccess(user.username, user.role || 'user'); 
+                    }
                 }
             }
-        } catch (e) { alert(e.message || '發生錯誤'); console.error(e); } finally { btn.disabled = false; }
+        } catch (e) { alert(e.message || '發生錯誤'); console.error(e); } 
+        finally { btn.disabled = false; }
     }
     
     window.toggleAuthMode = function() {
@@ -979,9 +980,17 @@
         else { title.innerText = '系統登入'; btn.innerText = '登入'; link.innerText = '沒有帳號？註冊新帳號'; }
     }
 
-    window.loginSuccess = function(username, role) { state.currentUser = { name: username, role: role }; localStorage.setItem('tt_current_user', JSON.stringify(state.currentUser)); initApp(); }
-    window.logout = function() { localStorage.removeItem('tt_current_user'); location.reload(); }
-
+    window.loginSuccess = function(username, role) { 
+        state.currentUser = { name: username, role: role }; 
+        localStorage.setItem('tt_current_user', JSON.stringify(state.currentUser)); 
+        initApp(); 
+    }
+    
+    window.logout = function() { 
+        localStorage.removeItem('tt_current_user'); 
+        location.reload(); 
+    }
+    
     window.initApp = function() { 
         document.getElementById('auth-screen').style.display = 'none'; 
         document.getElementById('app-screen').style.display = 'flex'; 
@@ -991,10 +1000,9 @@
 
     window.updateUIForRole = function() {
         if(!state.currentUser) return;
-        let roleName = '';
-        if(state.currentUser.role === 'creator') roleName = ' (創世神)'; else if(state.currentUser.role === 'senior') roleName = ' (高級管理者)'; else if(state.currentUser.role === 'admin') roleName = ' (管理者)';
         const dispName = getUserDisplayName(state.currentUser.name);
-        document.getElementById('displayUsername').innerText = dispName + roleName; document.getElementById('userAvatar').innerText = dispName[0].toUpperCase();
+        document.getElementById('displayUsername').innerText = dispName; 
+        document.getElementById('userAvatar').innerText = dispName[0].toUpperCase();
         
         const canViewPurchase = ['creator', 'senior', 'admin'].includes(state.currentUser.role);
         document.getElementById('purchaseBtn').style.display = canViewPurchase ? 'block' : 'none';
@@ -1004,7 +1012,7 @@
         document.getElementById('adminPanelBtn').style.display = canManage ? 'block' : 'none';
         document.getElementById('statsPanelBtn').style.display = canConfig ? 'block' : 'none';
         document.getElementById('salesSettingsBtn').style.display = canConfig ? 'block' : 'none';
-        document.getElementById('assignSettingsBtn').style.display = canConfig ? 'block' : 'none'; 
+        document.getElementById('assignSettingsBtn').style.display = canConfig ? 'block' : 'none';
         document.getElementById('importBtn').style.display = canManage ? 'block' : 'none'; 
     }
     
