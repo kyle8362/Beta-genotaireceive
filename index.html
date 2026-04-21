@@ -517,8 +517,9 @@
     function toggleSidebar() { document.querySelector('aside').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('active'); }
     function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => alert("已複製通知內容！")).catch(err => prompt("請手動複製:", text)); }
 
-    // --- v72: 客戶地址自動配對（依 task 內容去 state.customers 找對應客戶） ---
-    const LOC_MATCH_CATEGORIES = ["定序收件", "引子送件", "產前收件"];
+    // --- v73: 客戶地址自動配對（只用 PI 姓名，不用電話） ---
+    // v72 原本有電話配對，但醫院多科室共用總機，同醫院不同科室都會配到同一筆，反而錯；改用 PI 名更準。
+    const LOC_MATCH_CATEGORIES = ["定序收件", "引子送件"];
 
     function escAttr(s) {
         return (s == null ? '' : String(s))
@@ -530,19 +531,7 @@
         if (!state.customers || !state.customers.length) return null;
         const text = (task.title || '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ');
 
-        // 1. 電話完全符合（取前 10 碼比對，忽略分機與連字號）
-        const phoneCandidates = text.match(/0\d[\d\-\s#]{6,}/g) || [];
-        for (const raw of phoneCandidates) {
-            const d = raw.replace(/\D/g, '').substring(0, 10);
-            if (d.length < 9) continue;
-            const m = state.customers.find(c => {
-                const cd = (c.phone || '').replace(/\D/g, '').substring(0, 10);
-                return cd && cd.length >= 9 && cd === d;
-            });
-            if (m) return { customer: m, confidence: 'high' };
-        }
-
-        // 2. 【...】中的姓名（通常是 PI）同時出現在 customer.name 或 contact 欄位
+        // 用 【...】 中的姓名（通常是 PI）在 customer.name 或 contact 中找恰好一筆相符
         const names = [...text.matchAll(/【([^】]+)】/g)]
             .map(m => m[1].trim())
             .filter(s => s && !/^\d+$/.test(s) && s.length >= 2);
