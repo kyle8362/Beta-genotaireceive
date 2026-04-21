@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="robots" content="noindex, nofollow">
-    <title>中區收送件進度追蹤系統 (v73 Final Stable)</title>
+    <title>中區收送件進度追蹤系統 (v74 Final Stable)</title>
 
     <script src="https://unpkg.com/firebase@9.22.2/firebase-app-compat.js"></script>
     <script src="https://unpkg.com/firebase@9.22.2/firebase-firestore-compat.js"></script>
@@ -517,8 +517,8 @@
     function toggleSidebar() { document.querySelector('aside').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('active'); }
     function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => alert("已複製通知內容！")).catch(err => prompt("請手動複製:", text)); }
 
-    // --- v73: 客戶地址自動配對（只用 PI 姓名，不用電話） ---
-    // v72 原本有電話配對，但醫院多科室共用總機，同醫院不同科室都會配到同一筆，反而錯；改用 PI 名更準。
+    // --- v74: 客戶地址自動配對 ---
+    // 配對順序：1) PI 姓名精準 2) 單位名前 2 字（支援簡寫、多筆同地址）
     const LOC_MATCH_CATEGORIES = ["定序收件", "引子送件"];
 
     function escAttr(s) {
@@ -531,7 +531,7 @@
         if (!state.customers || !state.customers.length) return null;
         const text = (task.title || '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ');
 
-        // 用 【...】 中的姓名（通常是 PI）在 customer.name 或 contact 中找恰好一筆相符
+        // 1. PI 姓名【】精準配對：恰好一筆 customer.name 或 contact 相符
         const names = [...text.matchAll(/【([^】]+)】/g)]
             .map(m => m[1].trim())
             .filter(s => s && !/^\d+$/.test(s) && s.length >= 2);
@@ -540,6 +540,41 @@
                 (c.name && c.name.includes(name)) || (c.contact && c.contact.includes(name))
             );
             if (candidates.length === 1) return { customer: candidates[0], confidence: 'medium' };
+        }
+
+        // 2. 單位名 fallback：抓 title 第一個中文詞的前 2 字當 key
+        //    - 1 筆符合 → 用它
+        //    - 多筆：在這些候選人中，再用 title 內的聯絡人姓名 token 精準篩
+        //      例：「茂盛醫院 / 銷貨單給陳怡君」→ 多筆茂盛醫院-XXX → 用「陳怡君」挑出 茂盛醫院-陳怡君
+        //    - 還是多筆且全部同地址 → 用第一筆
+        //    - 多筆不同地址且無法精準篩 → 跳過（不亂猜）
+        const firstWord = (text.match(/[\u4e00-\u9fff]{2,}/) || [])[0];
+        if (firstWord) {
+            const key = firstWord.substring(0, 2);
+            const unitCandidates = state.customers.filter(c =>
+                (c.unit && c.unit.includes(key)) || (c.name && c.name.includes(key))
+            );
+            if (unitCandidates.length === 1) {
+                return { customer: unitCandidates[0], confidence: 'medium' };
+            }
+            if (unitCandidates.length > 1) {
+                // 在單位 候選人中，用 title 內 2-4 字中文 token 精準配對 name / contact
+                const tokens = text.match(/[\u4e00-\u9fff]{2,4}/g) || [];
+                for (const token of tokens) {
+                    if (token.includes(key)) continue; // 跳過單位 key 本身
+                    const refined = unitCandidates.filter(c =>
+                        (c.name && c.name.includes(token)) || (c.contact && c.contact.includes(token))
+                    );
+                    if (refined.length === 1) return { customer: refined[0], confidence: 'medium' };
+                }
+                // 無法精準篩 → 看是否全部同地址
+                const first = unitCandidates[0];
+                const sameAddr = unitCandidates.every(c =>
+                    (c.building || '') === (first.building || '') &&
+                    (c.floor || '') === (first.floor || '')
+                );
+                if (sameAddr) return { customer: first, confidence: 'medium' };
+            }
         }
 
         return null;
@@ -562,10 +597,9 @@
             c.phone ? '電話：' + c.phone : '',
             c.note ? '備註：' + c.note : ''
         ].filter(Boolean).join('\n');
-        const cls = match.confidence === 'high' ? 'loc-badge-high' : 'loc-badge-med';
-        const prefix = match.confidence === 'high' ? '📍' : '📍?';
+        // v73: PI 配對已驗證準確，統一綠色 badge 不加問號
         const searchKey = c.name || c.contact || c.unit || '';
-        return `<span class="loc-badge ${cls}" title="${escAttr(tooltip)}" onclick="openCustomerFromTask(event, '${escAttr(searchKey)}')">${prefix} ${escAttr(locStr)}</span>`;
+        return `<span class="loc-badge loc-badge-high" title="${escAttr(tooltip)}" onclick="openCustomerFromTask(event, '${escAttr(searchKey)}')">📍 ${escAttr(locStr)}</span>`;
     }
 
     async function openCustomerFromTask(evt, searchKey) {
