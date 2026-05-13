@@ -1,56 +1,71 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>粗飯問卷</title>
+    <title>粗飯問卷測試</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        h3 { color: #1DB446; }
+        #status { color: red; font-weight: bold; margin-bottom: 10px; border: 1px solid red; padding: 5px; display: none; }
         .option { margin: 10px 0; display: block; font-size: 18px; }
-        input[type="checkbox"], input[type="radio"] { transform: scale(1.5); margin-right: 10px; }
-        button { width: 100%; padding: 15px; background: #1DB446; color: white; border: none; border-radius: 8px; font-size: 18px; margin-top: 20px; }
+        button { width: 100%; padding: 15px; background: #1DB446; color: white; border: none; border-radius: 8px; font-size: 18px; }
     </style>
 </head>
 <body>
+    <div id="status"></div>
     <div class="card">
-        <h3>Q1. 哪幾天可以粗飯？(複選)</h3>
+        <h3>Q1. 哪幾天可以粗飯？</h3>
         <label class="option"><input type="checkbox" name="date" value="5/20(三)"> 5/20(三) 晚上</label>
-        <label class="option"><input type="checkbox" name="date" value="5/22(五)"> 5/22(五) 晚上</label>
         <label class="option"><input type="checkbox" name="date" value="5/23(六)"> 5/23(六) 中或晚</label>
-        <label class="option"><input type="checkbox" name="date" value="5/24(日)"> 5/24(日) 中或晚</label>
-        <label class="option"><input type="checkbox" name="date" value="5/26(二)"> 5/26(二) 晚上</label>
-        <label class="option"><input type="checkbox" name="date" value="5/27(三)"> 5/27(三) 晚上</label>
-        <label class="option"><input type="checkbox" name="date" value="5/29(五)"> 5/29(五) 晚上</label>
-
+        
         <h3>Q2. 幾位參加呢？</h3>
         <label class="option"><input type="radio" name="num" value="1位" checked> 本輪一位</label>
-        <label class="option"><input type="radio" name="num" value="2位"> 雙雙對對</label>
-        <label class="option"><input type="radio" name="num" value="3位"> 3人行</label>
-        <label class="option"><input type="radio" name="num" value="4位以上"> 全家動員</label>
 
-        <button onclick="submitSurvey()">送出問卷</button>
+        <button id="btn" onclick="submitSurvey()">送出問卷</button>
     </div>
 
     <script>
+        const statusDiv = document.getElementById('status');
+        function logError(msg) { statusDiv.style.display = 'block'; statusDiv.innerText = msg; }
+
         async function main() {
-            await liff.init({ liffId: "2010074236-PzZ4at3s" });
-            if (!liff.isLoggedIn()) { liff.login(); }
+            try {
+                // ⚠️ 檢查這裡！一定要換成你那串 200... 的 ID
+                await liff.init({ liffId: "2010074236-PzZ4at3s" }); 
+                
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                } else {
+                    document.getElementById('btn').innerText = "已連線，可以送出";
+                }
+            } catch (err) {
+                logError("LIFF 初始化失敗: " + err.message);
+            }
         }
         main();
 
         async function submitSurvey() {
-            const dates = Array.from(document.querySelectorAll('input[name="date"]:checked')).map(el => el.value);
-            const num = document.querySelector('input[name="num"]:checked').value;
-            
-            if (dates.length === 0) { alert("請至少選一個日期喔！"); return; }
+            try {
+                const dates = Array.from(document.querySelectorAll('input[name="date"]:checked')).map(el => el.value);
+                const num = document.querySelector('input[name="num"]:checked').value;
+                if (dates.length === 0) { alert("選個日期吧！"); return; }
 
-            const message = `📢 問卷完成報告！\n📍 日期：${dates.join(', ')}\n👥 人數：${num}`;
-            
-            // 這行會讓機器人幫使用者在群組「說出」這句話
-            await liff.sendMessages([{ type: 'text', text: message }]);
-            liff.closeWindow();
+                const message = `📢 填寫完畢！\n📍 日期：${dates.join(', ')}\n👥 人數：${num}`;
+
+                // 檢查權限
+                if (!liff.isInClient()) {
+                    alert("請在 LINE 裡面打開喔！");
+                    return;
+                }
+
+                await liff.sendMessages([{ type: 'text', text: message }]);
+                liff.closeWindow();
+            } catch (error) {
+                logError("送出失敗: " + error.message);
+                alert("錯誤：" + error.message);
+            }
         }
     </script>
 </body>
