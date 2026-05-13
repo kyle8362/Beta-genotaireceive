@@ -1,288 +1,57 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>網站維護中</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>粗飯問卷</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        /* 基礎排版與色彩設定 */
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-        }
-        .container {
-            text-align: center;
-            background: #fff;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            max-width: 600px;
-            width: 90%;
-        }
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 10px;
-        }
-        p {
-            color: #7f8c8d;
-            margin-bottom: 20px;
-            line-height: 1.6;
-        }
-        
-        /* 遊戲區域樣式 */
-        .game-container {
-            margin-top: 30px;
-            position: relative;
-        }
-        canvas {
-            background: #2c3e50; /* 深藍色背景 */
-            border-radius: 8px;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
-            display: block;
-            margin: 0 auto;
-            max-width: 100%;
-        }
-        .ui-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        button:hover {
-            background-color: #2980b9;
-        }
-        
-        /* 遊戲結束浮動視窗 */
-        #gameOver {
-            display: none;
-            position: absolute;
-            top: 40%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px 40px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h3 { color: #1DB446; }
+        .option { margin: 10px 0; display: block; font-size: 18px; }
+        input[type="checkbox"], input[type="radio"] { transform: scale(1.5); margin-right: 10px; }
+        button { width: 100%; padding: 15px; background: #1DB446; color: white; border: none; border-radius: 8px; font-size: 18px; margin-top: 20px; }
     </style>
 </head>
 <body>
+    <div class="card">
+        <h3>Q1. 哪幾天可以粗飯？(複選)</h3>
+        <label class="option"><input type="checkbox" name="date" value="5/20(三)"> 5/20(三) 晚上</label>
+        <label class="option"><input type="checkbox" name="date" value="5/22(五)"> 5/22(五) 晚上</label>
+        <label class="option"><input type="checkbox" name="date" value="5/23(六)"> 5/23(六) 中或晚</label>
+        <label class="option"><input type="checkbox" name="date" value="5/24(日)"> 5/24(日) 中或晚</label>
+        <label class="option"><input type="checkbox" name="date" value="5/26(二)"> 5/26(二) 晚上</label>
+        <label class="option"><input type="checkbox" name="date" value="5/27(三)"> 5/27(三) 晚上</label>
+        <label class="option"><input type="checkbox" name="date" value="5/29(五)"> 5/29(五) 晚上</label>
 
-    <div class="container">
-        <h1>🛠️ 網站升級維護中 🛠️</h1>
-        <p>我們正在為您準備更棒的服務體驗，系統目前正在進行更新。<br>預計很快就會回來！</p>
-        <p>等待的同時，不如來玩個「接金幣」小遊戲打發時間吧？</p>
+        <h3>Q2. 幾位參加呢？</h3>
+        <label class="option"><input type="radio" name="num" value="1位" checked> 本輪一位</label>
+        <label class="option"><input type="radio" name="num" value="2位"> 雙雙對對</label>
+        <label class="option"><input type="radio" name="num" value="3位"> 3人行</label>
+        <label class="option"><input type="radio" name="num" value="4位以上"> 全家動員</label>
 
-        <!-- 小遊戲區塊 -->
-        <div class="game-container">
-            <canvas id="gameCanvas" width="400" height="300"></canvas>
-            
-            <div id="gameOver">
-                <h2 style="margin: 0 0 15px; color:#e74c3c;">遊戲結束!</h2>
-                <button id="restartBtn">再玩一次</button>
-            </div>
-
-            <div class="ui-bar">
-                <div id="scoreDisplay">分數: 0</div>
-                <button id="startBtn">開始遊戲</button>
-                <div id="livesDisplay">生命: 3</div>
-            </div>
-        </div>
+        <button onclick="submitSurvey()">送出問卷</button>
     </div>
 
     <script>
-        // 取得畫布與 UI 元素
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const startBtn = document.getElementById('startBtn');
-        const restartBtn = document.getElementById('restartBtn');
-        const gameOverScreen = document.getElementById('gameOver');
-        const scoreDisplay = document.getElementById('scoreDisplay');
-        const livesDisplay = document.getElementById('livesDisplay');
-
-        // 遊戲核心變數
-        let animationId;
-        let isPlaying = false;
-        let score = 0;
-        let lives = 3;
-        
-        // 玩家 (藍色籃子)
-        const player = {
-            x: 170,
-            y: 270,
-            width: 60,
-            height: 15,
-            speed: 6,
-            dx: 0
-        };
-
-        // 金幣陣列
-        let coins = [];
-
-        // 監聽鍵盤操作 (電腦端)
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft') player.dx = -player.speed;
-            if (e.key === 'ArrowRight') player.dx = player.speed;
-        });
-
-        document.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') player.dx = 0;
-        });
-
-        // 監聽滑鼠與觸控操作 (支援手機端)
-        function handleMove(clientX) {
-            if(!isPlaying) return;
-            const rect = canvas.getBoundingClientRect();
-            // 確保座標在畫布比例內
-            const scaleX = canvas.width / rect.width; 
-            const x = (clientX - rect.left) * scaleX;
-            player.x = x - player.width / 2;
+        async function main() {
+            await liff.init({ liffId: "你的_LIFF_ID" });
+            if (!liff.isLoggedIn()) { liff.login(); }
         }
+        main();
 
-        canvas.addEventListener('mousemove', (e) => handleMove(e.clientX));
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault(); // 防止螢幕捲動
-            handleMove(e.touches[0].clientX);
-        }, {passive: false});
-
-        // 繪製玩家
-        function drawPlayer() {
-            ctx.fillStyle = '#3498db';
-            ctx.beginPath();
-            ctx.roundRect(player.x, player.y, player.width, player.height, 5);
-            ctx.fill();
-        }
-
-        // 繪製金幣
-        function drawCoins() {
-            ctx.fillStyle = '#f1c40f';
-            coins.forEach(coin => {
-                ctx.beginPath();
-                ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.closePath();
-            });
-        }
-
-        // 隨機生成金幣
-        function createCoin() {
-            if(Math.random() < 0.04) { // 控制掉落頻率
-                coins.push({
-                    x: Math.random() * (canvas.width - 20) + 10,
-                    y: -10,
-                    radius: 8,
-                    speed: Math.random() * 2.5 + 2 // 掉落速度
-                });
-            }
-        }
-
-        // 遊戲主迴圈
-        function update() {
-            if (!isPlaying) return;
-
-            // 清空畫布
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // 鍵盤移動邏輯
-            player.x += player.dx;
+        async function submitSurvey() {
+            const dates = Array.from(document.querySelectorAll('input[name="date"]:checked')).map(el => el.value);
+            const num = document.querySelector('input[name="num"]:checked').value;
             
-            // 邊界限制
-            if (player.x < 0) player.x = 0;
-            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+            if (dates.length === 0) { alert("請至少選一個日期喔！"); return; }
 
-            drawPlayer();
-            createCoin();
-
-            // 更新金幣位置與碰撞偵測
-            for (let i = 0; i < coins.length; i++) {
-                let coin = coins[i];
-                coin.y += coin.speed;
-
-                // 接住金幣
-                if (coin.y + coin.radius > player.y &&
-                    coin.y - coin.radius < player.y + player.height &&
-                    coin.x + coin.radius > player.x &&
-                    coin.x - coin.radius < player.x + player.width) {
-                    
-                    score += 10;
-                    scoreDisplay.innerText = `分數: ${score}`;
-                    coins.splice(i, 1);
-                    i--;
-                    continue;
-                }
-
-                // 漏接金幣 (掉出畫面底端)
-                if (coin.y - coin.radius > canvas.height) {
-                    lives--;
-                    livesDisplay.innerText = `生命: ${lives}`;
-                    coins.splice(i, 1);
-                    i--;
-
-                    if (lives <= 0) {
-                        endGame();
-                    }
-                }
-            }
-
-            drawCoins();
-
-            if (isPlaying) {
-                animationId = requestAnimationFrame(update);
-            }
-        }
-
-        // 開始遊戲
-        function startGame() {
-            score = 0;
-            lives = 3;
-            coins = [];
-            player.x = canvas.width / 2 - player.width / 2;
-            isPlaying = true;
+            const message = `📢 問卷完成報告！\n📍 日期：${dates.join(', ')}\n👥 人數：${num}`;
             
-            scoreDisplay.innerText = `分數: 0`;
-            livesDisplay.innerText = `生命: 3`;
-            gameOverScreen.style.display = 'none';
-            startBtn.style.display = 'none';
-            
-            update();
+            // 這行會讓機器人幫使用者在群組「說出」這句話
+            await liff.sendMessages([{ type: 'text', text: message }]);
+            liff.closeWindow();
         }
-
-        // 結束遊戲
-        function endGame() {
-            isPlaying = false;
-            cancelAnimationFrame(animationId);
-            gameOverScreen.style.display = 'block';
-            startBtn.style.display = 'block';
-            startBtn.innerText = '重新開始';
-        }
-
-        // 綁定按鈕事件
-        startBtn.addEventListener('click', startGame);
-        restartBtn.addEventListener('click', startGame);
-
-        // 初始畫面繪製
-        drawPlayer();
     </script>
 </body>
 </html>
