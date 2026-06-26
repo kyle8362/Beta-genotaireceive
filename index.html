@@ -833,6 +833,7 @@
             if (filterRole === 'pending') displayUsers = displayUsers.filter(u => !u.isApproved);
             else displayUsers = displayUsers.filter(u => u.isApproved && u.role === filterRole);
         }
+        
         displayUsers.forEach(user => {
             const li = document.createElement('li'); li.className = 'user-item';
             let badgeClass = 'role-user'; let badgeText = '一般者';
@@ -847,74 +848,61 @@
             
             if (myRole === 'creator' || myRole === 'senior') {
                 if (myRole === 'senior' && isTargetCreator) {
-                     controlsHtml = `<div class="user-edit-row"><span style="color:purple; font-weight:bold;">此為最高權限帳號，無法編輯。</span></div>`;
+                    controlsHtml = `<div class="user-edit-row"><span style="color:purple; font-weight:bold;">此為最高權限帳號，無法編輯。</span></div>`;
                 } else {
                     const selUser = user.role === 'user' ? 'selected' : '';
                     const selAdmin = user.role === 'admin' ? 'selected' : '';
                     const selSenior = user.role === 'senior' ? 'selected' : '';
-                    const roleSelect = (myRole==='creator' && isTargetCreator) ? `<select disabled><option>創世神</option></select>` : `<select id="role_${user.docId}"><option value="user" ${selUser}>一般者</option><option value="admin" ${selAdmin}>管理者</option><option value="senior" ${selSenior}>高級管理者</option></select>`;
-                    controlsHtml = `<div class="user-edit-row">${roleSelect}<input type="text" id="note_${user.docId}" placeholder="備註" value="${user.remarks || ''}" style="width:50%"><input type="text" id="nick_${user.docId}" placeholder="稱謂 (選填)" value="${user.nickname || ''}" style="width:30%"></div>
-                        <div class="user-edit-row"><span class="readonly-text">密碼:</span><input type="password" id="pwd_${user.docId}" value="${user.password}" readonly style="background:#eee;color:#555;"><button class="btn-icon-eye" onclick="togglePasswordVisibility('pwd_${user.docId}')">👁️</button></div>
-                        <div style="text-align:right;"><button class="btn-approve" onclick="updateUser('${user.docId}')">${user.isApproved?'更新資料':'核准/更新'}</button>${!isTargetCreator ? `<button class="btn-reject" onclick="deleteUser('${user.docId}')">刪除</button>` : ''}</div>`;
+                    const roleSelect = (myRole==='creator' && isTargetCreator) ? `<select disabled><option>創世神</option></select>` : `<select class="role-select" id="role_${user.docId}"><option value="user" ${selUser}>一般者</option><option value="admin" ${selAdmin}>管理者</option><option value="senior" ${selSenior}>高級管理者</option></select>`;
+                    
+                    // 需求1: 調整順序 (身分 -> 稱謂 -> 備註)
+                    // 需求2: 密碼旁新增修改按鍵 (保留原本的眼睛，新增修改按鈕)
+                    controlsHtml = `
+                        <div class="user-edit-row">
+                            ${roleSelect}
+                            <input type="text" id="nick_${user.docId}" placeholder="稱謂 (選填)" value="${user.nickname || ''}" style="width:30%">
+                            <input type="text" id="note_${user.docId}" placeholder="備註" value="${user.remarks || ''}" style="flex-grow:1;">
+                        </div>
+                        <div class="user-edit-row pwd-edit-container">
+                            <span class="readonly-text">密碼:</span>
+                            <input type="password" id="pwd_${user.docId}" value="${user.password}" readonly style="background:#eee;color:#555;">
+                            <button class="btn-icon-eye" onclick="togglePasswordVisibility('pwd_${user.docId}')" style="margin-right:10px;">👁️</button>
+                            <button class="btn-change-pwd" onclick="promptResetPassword('${user.docId}')">🔑 修改密碼</button>
+                        </div>
+                        <div style="text-align:right;">
+                            <button class="btn-approve" onclick="updateUser('${user.docId}')">${user.isApproved?'更新資料':'核准/更新'}</button>
+                            ${!isTargetCreator ? `<button class="btn-reject" onclick="deleteUser('${user.docId}')">刪除</button>` : ''}
+                        </div>`;
                 }
             } else {
+                // 需求2 (防護機制): 管理者/一般者 看到的畫面，按鈕會反灰且無功能
                 let actionBtn = !user.isApproved ? `<button class="btn-approve" onclick="approveUserSimple('${user.docId}')">核准申請</button>` : `<span style="color:#10b981; font-size:0.85rem;">已核准</span>`;
-                controlsHtml = `<div class="user-edit-row"><span class="readonly-text">角色: ${badgeText}</span><span class="readonly-text" style="margin-left:15px;">備註: ${user.remarks || '(無)'}</span></div><div style="text-align:right;">${actionBtn}</div>`;
+                controlsHtml = `
+                    <div class="user-edit-row">
+                        <span class="readonly-text">角色: ${badgeText}</span>
+                        <span class="readonly-text" style="margin-left:15px;">稱謂: ${user.nickname || '(無)'}</span>
+                        <span class="readonly-text" style="margin-left:15px;">備註: ${user.remarks || '(無)'}</span>
+                    </div>
+                    <div class="user-edit-row pwd-edit-container">
+                        <span class="readonly-text">密碼:</span>
+                        <input type="password" value="********" disabled style="background:#f9fafb; border:1px solid #e5e7eb;">
+                        <button class="btn-change-pwd" style="background:#f3f4f6; color:#9ca3af; border:1px solid #e5e7eb; cursor:not-allowed;" disabled>🚫 無修改權限</button>
+                    </div>
+                    <div style="text-align:right;">${actionBtn}</div>`;
             }
             li.innerHTML = `<div class="user-header"><div><span class="user-name">${user.username}</span><span class="user-role-badge ${badgeClass}">${badgeText}</span></div></div>${controlsHtml}`;
             list.appendChild(li);
         });
     }
 
-    function togglePasswordVisibility(id) { const input = document.getElementById(id); input.type = input.type === "password" ? "text" : "password"; }
-    function updateUser(docId) {
-        const role = document.getElementById(`role_${docId}`).value; const note = document.getElementById(`note_${docId}`).value; const nick = document.getElementById(`nick_${docId}`).value;
-        db.collection('users').doc(docId).update({ role: role, remarks: note, nickname: nick, isApproved: true }).then(() => alert('資料已更新'));
-    }
-    function deleteUser(docId) { if(confirm('確定要刪除？')) db.collection('users').doc(docId).delete().then(() => renderUserList()); }
-    function approveUserSimple(docId) { db.collection('users').doc(docId).update({ isApproved: true }).then(() => alert('已核准')); }
-
-    function openStatsModal() {
-        const modal = document.getElementById('statsModal'); 
-        const userSelect = document.getElementById('statsUserSelect'); 
-        const startInput = document.getElementById('statsDateStart'); 
-        const endInput = document.getElementById('statsDateEnd');
-        userSelect.innerHTML = '<option value="all">-- 所有帳號 (總覽) --</option>';
-        const uniqueUsers = [...new Set(state.tasks.filter(t=>t.completed && t.completedBy).map(t=>t.completedBy))];
-        uniqueUsers.sort().forEach(u => { const opt = document.createElement('option'); opt.value = u; opt.innerText = getUserDisplayName(u); userSelect.appendChild(opt); });
-        const year = new Date().getFullYear(); 
-        startInput.value = `${year}-01-01`; endInput.value = `${year}-12-31`;
-        updateStats(); 
-        modal.style.display = 'flex';
-    }
-
-    function updateStats() {
-        const start = document.getElementById('statsDateStart').value; const end = document.getElementById('statsDateEnd').value;
-        const selectedUser = document.getElementById('statsUserSelect').value; const display = document.getElementById('statsResultDisplay'); display.innerHTML = '';
-        if(!start || !end) return;
-        const validTasks = state.tasks.filter(t => !t.completed || t.isDeleted || !t.completedBy ? false : (t.date >= start && t.date <= end));
-        if (selectedUser === 'all') {
-            const userCounts = {}; let total = 0;
-            validTasks.forEach(t => { if(!userCounts[t.completedBy]) userCounts[t.completedBy]=0; userCounts[t.completedBy]++; total++; });
-            if(total === 0) { display.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">此區間無完成資料</div>'; return; }
-            Object.entries(userCounts).sort((a,b)=>b[1]-a[1]).forEach(([user, count]) => {
-                const pct = Math.round((count/total)*100);
-                const card = document.createElement('div'); card.className = 'stat-card';
-                card.innerHTML = `<div class="stat-header"><span>${getUserDisplayName(user)}</span> <span>${count} 件</span></div><div class="stat-bar-container"><div class="stat-label"><span>佔比</span><span>${pct}%</span></div><div class="stat-track"><div class="stat-fill" style="width:${pct}%"></div></div></div>`;
-                display.appendChild(card);
-            });
-        } else {
-            const userTasks = validTasks.filter(t => t.completedBy === selectedUser); const total = userTasks.length;
-            if(total === 0) { display.innerHTML = `<div style="text-align:center; padding:20px; color:#888;">帳號 ${getUserDisplayName(selectedUser)} 在此區間無完成資料</div>`; return; }
-            const catCounts = {}; ORDERED_CATEGORIES.forEach(c => catCounts[c]=0);
-            userTasks.forEach(t => { if(catCounts[t.category]!==undefined) catCounts[t.category]++; });
-            const card = document.createElement('div'); card.className = 'stat-card';
-            card.innerHTML = `<div class="stat-header" style="border-bottom:1px solid #eee; padding-bottom:5px;">${getUserDisplayName(selectedUser)} - 總計 ${total} 件</div>`;
-            ORDERED_CATEGORIES.forEach(cat => {
-                const count = catCounts[cat]; const pct = total===0?0:Math.round((count/total)*100);
-                card.innerHTML += `<div style="margin-top:10px;"><div class="stat-label"><span>${cat}</span><span>${count} (${pct}%)</span></div><div class="stat-track"><div class="stat-fill" style="width:${pct}%"></div></div></div>`;
-            });
-            display.appendChild(card);
+    // ========== 新增：修改密碼的真實執行功能 ==========
+    function promptResetPassword(docId) {
+        const newPwd = prompt("請輸入新的密碼：");
+        // 確保使用者有輸入，且不是按取消
+        if (newPwd !== null && newPwd.trim() !== "") {
+            db.collection('users').doc(docId).update({ password: newPwd.trim() })
+                .then(() => alert('✅ 密碼修改成功！'))
+                .catch(err => alert('❌ 修改失敗: ' + err.message));
         }
     }
 
