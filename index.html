@@ -309,7 +309,59 @@
 
 <div class="modal-overlay" id="salesSettingsModal"><div class="modal-card" style="width: 450px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">⚙️ NGS 負責業務設定</h3><div style="display:flex; gap:10px; margin-bottom:15px;"><input type="text" id="newSalesName" placeholder="輸入新業務姓名" style="flex-grow:1; padding:8px; border:1px solid #ccc; border-radius:4px;"><button class="btn btn-save" onclick="window.addSalesOption()">新增</button></div><ul class="settings-list" id="salesOptionList"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('salesSettingsModal').style.display='none'">關閉</button></div></div></div>
 <div class="modal-overlay" id="historyModal"><div class="modal-card" style="width: 400px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📋 編輯/操作紀錄</h3><ul class="log-list" id="logList"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('historyModal').style.display='none'">關閉</button></div></div></div>
-<div class="modal-overlay" id="userModal"><div class="modal-card" style="width: 650px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">👥 成員權限管理</h3><div style="margin-bottom:10px; text-align:right;"><select id="userFilterSelect" onchange="window.renderUserList()" style="padding:5px; border-radius:4px; border:1px solid #ddd; font-size:0.85rem;"><option value="all">顯示全部</option><option value="creator">🟣 創世神</option><option value="senior">高級管理者</option><option value="admin">管理者</option><option value="user">一般者</option><option value="pending">待審核</option></select></div><ul class="user-list" id="userListDisplay"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('userModal').style.display='none'">關閉</button></div></div></div>
+<div class="modal-overlay" id="userModal">
+    <div class="modal-card" style="width: 850px;">
+        <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">👥 成員權限管理</h3>
+        
+        <div class="role-matrix-section">
+            <div class="role-matrix-header-title">
+                <span>⚙️ 階層權限功能設定</span>
+                <button class="pur-btn-add" style="font-size: 13px !important; padding: 4px 8px !important;">+ 新增階層</button>
+            </div>
+            <div class="role-matrix-table-wrapper">
+                <table class="role-matrix-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left;">管理階層</th>
+                            <th>1. 任務看板</th>
+                            <th>2. 客戶位置查詢</th>
+                            <th>3. QIAGEN採購進度</th>
+                            <th>4. 成員權限管理</th>
+                            <th>5. 標籤選單後台設定</th>
+                            <th>6. 指派任務帳號設定</th>
+                            <th>7. 批量匯入任務</th>
+                            <th>8. 任務完成統整</th>
+                            <th>9. 審核帳號權限</th>
+                        </tr>
+                    </thead>
+                    <tbody id="roleMatrixBody">
+                        </tbody>
+                </table>
+            </div>
+            <div style="text-align: right; margin-top: 10px;">
+                <button class="btn btn-save" style="font-size: 0.85rem; padding: 5px 10px;">儲存階層設定</button>
+            </div>
+        </div>
+
+        <div style="margin-bottom:10px; text-align:right;">
+            <select id="userFilterSelect" onchange="window.renderUserList()" style="padding:5px; border-radius:4px; border:1px solid #ddd; font-size:0.85rem;">
+                <option value="all">顯示全部</option>
+                <option value="creator">🟣 創世神</option>
+                <option value="senior">高級管理者</option>
+                <option value="admin">管理者</option>
+                <option value="user">一般者</option>
+                <option value="pending">待審核</option>
+            </select>
+        </div>
+
+        <ul class="user-list" id="userListDisplay">
+            </ul>
+
+        <div class="modal-btns">
+            <button class="btn btn-cancel" onclick="document.getElementById('userModal').style.display='none'">關閉</button>
+        </div>
+    </div>
+</div>
 <div class="modal-overlay" id="statsModal"><div class="modal-card" style="width: 700px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📊 任務完成統整</h3><div class="stats-filter-row"><div><label style="font-size:0.8rem;">開始日期</label><input type="date" id="statsDateStart"></div><div><label style="font-size:0.8rem;">結束日期</label><input type="date" id="statsDateEnd"></div><div><label style="font-size:0.8rem;">檢索帳號</label><select id="statsUserSelect"><option value="all">-- 所有帳號 (總覽) --</option></select></div><div style="display:flex; align-items:flex-end;"><button class="btn btn-save" onclick="window.updateStats()">查詢</button></div></div><div class="stats-result-area" id="statsResultDisplay"></div><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('statsModal').style.display='none'">關閉</button></div></div></div>
 
 <div class="modal-overlay" id="assignSettingsModal">
