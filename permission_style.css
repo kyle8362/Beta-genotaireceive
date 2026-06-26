@@ -1,0 +1,24 @@
+  /* User List and Settings Styles */
+        .user-list, .settings-list, .assign-list { list-style: none; padding: 0; margin: 0; }
+        .user-item { display: flex; flex-direction: column; padding: 15px; border: 1px solid #eee; background: white; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: 0.2s; }
+        .user-item:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.05); transform: translateY(-1px); }
+        .user-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .user-name { font-weight: 700; font-size: 1.05rem; color: #1f2937; }
+        .user-role-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; margin-left: 8px; border: 1px solid #ddd; font-weight: 500; }
+        .role-creator { background: #f3e8ff; color: #6b21a8; border-color: #d8b4fe; }
+        .role-senior { background: #fef3c7; color: #b45309; border-color: #fcd34d; }
+        .role-admin { background: #e0f2fe; color: #0369a1; border-color: #7dd3fc; }
+        .role-user { background: #f3f4f6; color: #4b5563; border-color: #d1d5db; }
+        .user-edit-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+        .user-edit-row input, .user-edit-row select { padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; }
+        
+        .settings-container { margin-top: 15px; }
+        .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        
+        /* Assignment Settings */
+        .assign-section { border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #fafafa; }
+        .assign-sec-title { font-weight: bold; margin-bottom: 8px; color: var(--primary); font-size: 0.95rem; }
+        .assign-checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; }
+        .assign-check-item { display: flex; align-items: center; font-size: 0.9rem; background: white; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
+        .assign-check-item:hover { border-color: var(--primary); }
+        .assign-check-item input { margin-right: 6px; }
