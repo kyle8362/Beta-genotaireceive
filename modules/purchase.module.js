@@ -436,7 +436,12 @@
         viewId: 'purchaseView',
         navButtonId: 'purchaseBtn',
         navButtonClass: 'btn-purchase',
-        requiredRoles: ['creator', 'senior', 'admin'],   // 誰看得到入口按鈕
+        // permKey / permLabel：讓「成員設定管理 → 成員權限」自動長出這一項勾選框。
+        permKey: 'purchase',
+        permLabel: '📦 QIAGEN 採購進度',
+        // requiredRoles = 帳號「尚未被個別勾選」時的預設值。
+        // 一旦管理員在成員權限勾/取消，勾選結果優先於此。
+        requiredRoles: ['creator', 'senior', 'admin'],
 
         init: function (appCore) {
             core = appCore;
