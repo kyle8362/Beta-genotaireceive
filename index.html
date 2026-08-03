@@ -274,6 +274,17 @@
             <button class="fab" onclick="window.openModal()">+</button>
         </div>
 
+        <div id="noAccessView" class="view-section">
+            <header>
+                <h1>沒有可用的分頁</h1>
+                <div class="date-header">帳號權限設定</div>
+            </header>
+            <div style="background:white; border:1px solid var(--border); border-radius:8px; padding:2rem; max-width:520px; line-height:1.8;">
+                您的帳號目前沒有被授權使用任何分頁。<br>
+                請聯絡管理員於「成員設定管理 → 成員權限」中勾選您可使用的分頁。
+            </div>
+        </div>
+
         <!-- ===== 模組主畫面掛載點（由 module 自行注入 HTML） ===== -->
         <div id="module-mount-views" style="display:contents;"></div>
     </main>
@@ -358,6 +369,66 @@
     function hasRole(roles) { return !!state.currentUser && roles.includes(state.currentUser.role); }
 
     // ==========================================
+    // 3-1. 分頁使用權限（per-account）
+    //   儲存位置：Firestore users 文件的 perms 欄位
+    //   例：perms: { tasks: true, customers: true, purchase: false }
+    //   未設定（舊帳號）→ 沿用預設值，行為與改版前完全相同
+    // ==========================================
+    const BUILTIN_PERM_ITEMS = [
+        { key: 'tasks', label: '📋 任務看板', defaultRoles: null }   // defaultRoles=null 代表預設全員可用
+    ];
+
+    // 權限清單 = 內建(任務看板) + 各模組自行宣告的 permKey
+    function getPermissionItems() {
+        const items = BUILTIN_PERM_ITEMS.slice();
+        AppCore._modules.forEach(m => {
+            if (!m.permKey) return;
+            items.push({ key: m.permKey, label: m.permLabel || m.permKey, defaultRoles: m.requiredRoles || null });
+        });
+        return items;
+    }
+
+    // 算出某個使用者實際擁有的權限
+    function getPermsFor(user) {
+        const result = {};
+        const stored = (user && user.perms) || {};
+        const isCreator = user && user.role === 'creator';
+        getPermissionItems().forEach(it => {
+            if (isCreator) { result[it.key] = true; return; }                  // 創世神固定全開，避免鎖死
+            if (typeof stored[it.key] === 'boolean') { result[it.key] = stored[it.key]; return; }
+            result[it.key] = it.defaultRoles ? it.defaultRoles.includes(user && user.role) : true;
+        });
+        return result;
+    }
+
+    function getCurrentUserRecord() {
+        if (!state.currentUser) return null;
+        return state.users.find(u => u.username === state.currentUser.name) || null;
+    }
+
+    function canAccess(permKey) {
+        if (!state.currentUser) return false;
+        const rec = getCurrentUserRecord() || { role: state.currentUser.role };
+        return getPermsFor(rec)[permKey] !== false;
+    }
+
+    // 分頁 key → 是否可進入
+    function canAccessView(viewKey) {
+        if (viewKey === 'tasks') return canAccess('tasks');
+        const mod = AppCore.getModule(viewKey);
+        if (!mod || !mod.viewId) return false;
+        if (mod.permKey) return canAccess(mod.permKey);
+        return !mod.requiredRoles || hasRole(mod.requiredRoles);
+    }
+
+    // 回傳第一個可進入的分頁 key，全部沒權限則回 null
+    function firstAllowedView() {
+        if (canAccessView('tasks')) return 'tasks';
+        const mod = AppCore._modules.find(m => m.viewId && canAccessView(m.key));
+        return mod ? mod.key : null;
+    }
+
+    // ==========================================
     // 4. AppCore ─ 模組唯一對外接口
     //    模組只能透過 AppCore 取用核心資料與工具，
     //    不直接互相呼叫，因此改 A 模組不會影響 B 模組。
@@ -371,6 +442,7 @@
 
         // --- 工具層 ---
         getTodayStr, getUserDisplayName, escAttr, hasRole, escapeAttr: escAttr,
+        getPermissionItems, getPermsFor, canAccess, canAccessView,
         switchTab: (k) => switchTab(k),
         renderTasks: () => { if (state.activeTab === 'tasks') renderTasks(); },
 
@@ -552,11 +624,38 @@
     // ==========================================
     // 6. 分頁切換（模組化：走註冊表，不再寫死）
     // ==========================================
+    function hideAllViews() {
+        document.getElementById('taskView').classList.remove('active');
+        document.getElementById('noAccessView').classList.remove('active');
+        AppCore._modules.forEach(m => {
+            if (!m.viewId) return;
+            const el = document.getElementById(m.viewId);
+            if (el) el.classList.remove('active');
+        });
+    }
+
+    function showNoAccessView() {
+        state.activeTab = null;
+        hideAllViews();
+        document.getElementById('noAccessView').classList.add('active');
+        document.getElementById('taskSearchSection').style.display = 'none';
+        document.getElementById('taskDateSection').style.display = 'none';
+    }
+
     function switchTab(tab) {
+        // === 權限守門：沒權限就自動導到第一個有權限的分頁 ===
+        if (!canAccessView(tab)) {
+            const fallback = firstAllowedView();
+            if (!fallback) { showNoAccessView(); updateUIForRole(); return; }
+            switchTab(fallback);
+            return;
+        }
+
         state.activeTab = tab;
 
         // 1) 全部隱藏
         document.getElementById('taskView').classList.remove('active');
+        document.getElementById('noAccessView').classList.remove('active');
         AppCore._modules.forEach(m => {
             if (!m.viewId) return;
             const el = document.getElementById(m.viewId);
@@ -589,7 +688,7 @@
                 if (typeof mod.activate === 'function') mod.activate();
             }
         }
-        if(window.innerWidth <= 768) toggleSidebar();
+        if (window.innerWidth <= 768 && document.querySelector('aside').classList.contains('open')) toggleSidebar();
     }
 
     // ==========================================
@@ -883,6 +982,7 @@
         document.getElementById('app-screen').style.display = 'flex';
         updateUIForRole();
         changeDate(state.currentDate, false);
+        switchTab(firstAllowedView() || 'tasks');   // 無任何權限時 switchTab 會顯示提示畫面
         AppCore.emit('user:login', state.currentUser);
     }
 
@@ -892,20 +992,36 @@
         document.getElementById('displayUsername').innerText = dispName;
         document.getElementById('userAvatar').innerText = dispName[0].toUpperCase();
 
-        // 任務看板自有按鈕
+        // 主分頁按鈕：依「該帳號的分頁使用權限」顯示或隱藏
+        const canTasks = canAccess('tasks');
+        document.getElementById('btnTabTasks').style.display = canTasks ? 'block' : 'none';
+
+        // 任務看板自有按鈕（沒有任務看板權限就一併隱藏）
         const canManage = hasRole(['creator','senior','admin']);
         const canConfig = hasRole(['creator','senior']);
-        document.getElementById('importBtn').style.display = canManage ? 'block' : 'none';
-        document.getElementById('statsPanelBtn').style.display = canConfig ? 'block' : 'none';
+        document.getElementById('importBtn').style.display = (canManage && canTasks) ? 'block' : 'none';
+        document.getElementById('statsPanelBtn').style.display = (canConfig && canTasks) ? 'block' : 'none';
 
-        // 模組按鈕：依模組自己宣告的 requiredRoles 決定
+        // 搜尋任務 / 日期選擇：無任務看板權限則永久隱藏
+        if (!canTasks) {
+            document.getElementById('taskSearchSection').style.display = 'none';
+            document.getElementById('taskDateSection').style.display = 'none';
+        }
+
+        // 模組按鈕：有宣告 permKey 者走帳號權限，否則走角色
         AppCore._modules.forEach(m => {
             if (!m.navButtonId) return;
             const btn = document.getElementById(m.navButtonId);
             if (!btn) return;
-            const allowed = !m.requiredRoles || hasRole(m.requiredRoles);
+            const allowed = m.permKey ? canAccess(m.permKey)
+                                      : (!m.requiredRoles || hasRole(m.requiredRoles));
             btn.style.display = allowed ? 'block' : 'none';
         });
+
+        // 客戶位置查詢按鈕由 customer 模組宣告 permKey，但它的按鈕寫在本檔，
+        // 故此處單獨處理（模組 navButtonId 為 null）。
+        const btnCust = document.getElementById('btnTabCustomers');
+        if (btnCust) btnCust.style.display = canAccess('customers') ? 'block' : 'none';
     }
 
     // ==========================================
@@ -934,7 +1050,21 @@
 
         db.collection('users').onSnapshot(snapshot => {
             state.users = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
-            updateUIForRole();
+
+            // 管理員若在他人登入期間調整角色/權限，這裡即時同步
+            if (state.currentUser) {
+                const rec = getCurrentUserRecord();
+                if (rec && rec.role && rec.role !== state.currentUser.role) {
+                    state.currentUser.role = rec.role;
+                    localStorage.setItem('tt_current_user', JSON.stringify(state.currentUser));
+                }
+                updateUIForRole();
+                // 目前所在分頁被收回權限 → 自動導離
+                if (!canAccessView(state.activeTab)) {
+                    const f = firstAllowedView();
+                    if (f) switchTab(f); else showNoAccessView();
+                }
+            }
             AppCore.emit('users:changed', state.users);
         });
 
