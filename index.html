@@ -1,11 +1,966 @@
-<div class="modal-overlay" id="gameModal">
-    <div class="modal-card" style="width: 400px; text-align: center;">
-        <h3>🚀 伺服器除錯跑酷</h3>
-        <div id="game-canvas" style="width: 100%; height: 150px; background: #111; margin: 10px 0; position: relative; overflow: hidden; border-radius: 8px;">
-            <div id="player" style="width: 20px; height: 20px; background: #38bdf8; position: absolute; bottom: 0; left: 20px;"></div>
-            <div id="obstacle" style="width: 20px; height: 30px; background: #ef4444; position: absolute; bottom: 0; right: -20px;"></div>
-        </div>
-        <p>按下「空白鍵」或點擊畫面跳躍！</p>
-        <button class="btn btn-cancel" onclick="document.getElementById('gameModal').style.display='none'">關閉遊戲</button>
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="robots" content="noindex, nofollow">
+    <title>中區收送件進度追蹤系統 (v80 Modular)</title>
+
+    <script src="https://unpkg.com/firebase@9.22.2/firebase-app-compat.js"></script>
+    <script src="https://unpkg.com/firebase@9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://unpkg.com/firebase@9.22.2/firebase-database-compat.js"></script>
+
+    <style>
+        /* =========================================================
+           本檔案只保留「共用樣式 + 任務看板樣式」
+           客戶查詢 / 採購 / 成員設定 的樣式各自寫在對應 module 內
+           ========================================================= */
+        :root {
+            --primary: #0f766e; --primary-light: #ccfbf1; --bg: #f3f4f6;
+            --sidebar-bg: #ffffff; --text-main: #111827; --text-light: #6b7280;
+            --border: #e5e7eb; --danger: #ef4444; --success: #10b981; --warning: #f59e0b;
+            --genesis: #7e22ce; --line-green: #06c755; --blue: #2563eb;
+            --assign-bg: #4338ca;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: var(--bg); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; }
+
+        /* Auth Screen */
+        #auth-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 2000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .auth-box { background: white; padding: 2.5rem; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 90%; max-width: 320px; text-align: center; border: 1px solid var(--border); position: relative; }
+        .auth-box input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; }
+        .auth-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; font-weight: 600; font-size: 1rem; transition: background 0.3s; }
+        .auth-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+        .switch-auth { margin-top: 15px; font-size: 0.9rem; color: var(--text-light); cursor: pointer; text-decoration: underline; }
+
+        /* Layout Structure */
+        #app-screen { display: flex; width: 100%; height: 100%; position: relative; }
+
+        aside {
+            width: 280px; min-width: 280px; flex-shrink: 0;
+            background: var(--sidebar-bg); border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; box-sizing: border-box;
+            transition: transform 0.3s ease; padding: 0; z-index: 50;
+        }
+
+        .sidebar-fixed { padding: 1.5rem 1.5rem 0.5rem 1.5rem; flex-shrink: 0; background: var(--sidebar-bg); z-index: 10; border-bottom: 1px solid #f3f4f6; }
+        .sidebar-scroll { padding: 1rem 1.5rem 1.5rem 1.5rem; flex-grow: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+        .sidebar-scroll::-webkit-scrollbar { width: 5px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+
+        #mobile-menu-btn { display: none; position: absolute; top: 15px; left: 15px; z-index: 1100; background: white; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 1.5rem; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); color: var(--primary); }
+        #sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 900; backdrop-filter: blur(2px); }
+
+        .user-profile { display: flex; align-items: center; gap: 10px; padding-bottom: 1.5rem; margin-bottom: 0.5rem; }
+        .avatar { width: 40px; height: 40px; background: var(--primary); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; flex-shrink: 0; }
+        .logout-link { font-size: 0.8rem; color: var(--danger); cursor: pointer; margin-top: 2px;}
+
+        .sidebar-btn { padding: 10px; border-radius: 6px; text-align: center; cursor: pointer; font-weight: 600; margin-bottom: 10px; display: block; font-size: 0.9rem; border: 1px solid transparent; width: 100%; white-space: nowrap; }
+        .sidebar-btn:hover { opacity: 0.9; }
+        .btn-nav-active { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-nav-inactive { background: white; color: var(--text-light); border: 1px solid var(--border); }
+
+        .admin-btn { padding: 10px; border-radius: 6px; text-align: center; cursor: pointer; font-weight: 600; margin-bottom: 10px; display: none; font-size: 0.9rem; white-space: nowrap; }
+        .btn-stats { background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; }
+        .btn-import { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        .btn-client-search { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
+        .btn-member-settings { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
+        .btn-purchase { background: #fdf4ff; color: #86198f; border: 1px solid #f0abfc; }
+
+        .sidebar-section h3 { font-size: 0.85rem; text-transform: uppercase; color: var(--text-light); letter-spacing: 1px; margin-bottom: 1rem; }
+        input[type="date"] { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); box-sizing: border-box; font-family: inherit; }
+
+        .search-box { position: relative; margin-bottom: 20px; }
+        .search-box input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; margin-bottom: 5px; font-size: 0.9rem; }
+        .search-results { list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; background: white; border: 1px solid #eee; border-radius: 6px; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .search-item { padding: 10px; font-size: 0.85rem; border-bottom: 1px solid #f3f4f6; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+        .search-item:hover { background: #f0fdfa; color: var(--primary); }
+        .search-item:last-child { border-bottom: none; }
+
+        .history-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+        .history-item { padding: 10px; cursor: pointer; border-radius: 6px; color: var(--text-main); margin-bottom: 4px; display: flex; justify-content: space-between; }
+        .history-item:hover { background: #f8fafc; }
+        .history-item.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+
+        main { flex-grow: 1; padding: 2rem; overflow-y: auto; overflow-x: auto; position: relative; min-width: 0; }
+        .view-section { display: none; height: 100%; flex-direction: column; }
+        .view-section.active { display: flex; }
+
+        /* Task View Styles */
+        header { margin-bottom: 2rem; }
+        header h1 { margin: 0; font-size: 1.8rem; color: #111827; }
+        .date-header { color: var(--text-light); margin-bottom: 0.5rem; font-weight: 500; }
+        .overall-progress-container { margin-top: 15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; }
+        .progress-label { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px; font-weight: 600; color: #4b5563; }
+        .progress-track { width: 100%; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--success); transition: width 0.5s ease; }
+
+        .task-container { max-width: 900px; padding-bottom: 100px; }
+        .category-group { margin-bottom: 2.5rem; }
+        .category-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+        .cat-title { color: var(--primary); font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; }
+        .badge-count { background: #e5e7eb; color: #374151; font-size: 0.8rem; padding: 2px 8px; border-radius: 10px; margin-left: 10px; }
+        .cat-progress-track { width: 100%; height: 4px; background: #e5e7eb; border-radius: 2px; overflow: hidden; margin-bottom: 1rem; }
+        .cat-progress-fill { height: 100%; background: var(--primary); transition: width 0.5s ease; }
+
+        details { margin-bottom: 10px; border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; background: white; }
+        details summary { padding: 12px; cursor: pointer; font-weight: 600; background: #f9fafb; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+        .details-content { padding: 10px; background: #fff; }
+        .category-group.overdue-section .cat-title { color: #dc2626; }
+
+        .task-item { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 0.8rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; align-items: flex-start; transition: all 0.2s; border-left: 4px solid transparent; position: relative; }
+        .task-item:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.05); transform: translateY(-1px); }
+        .task-item[data-cat="定序收件"] { border-left-color: #3b82f6; }
+        .task-item[data-cat="引子送件"] { border-left-color: #8b5cf6; }
+        .task-item[data-cat="產前收件"] { border-left-color: #ec4899; }
+        .task-item[data-cat="業務交辦事項"] { border-left-color: #f59e0b; }
+        .task-item[data-cat="NGS收件"] { border-left-color: #0d9488; }
+        .task-item.overdue-item { animation: blink-alert 2s infinite ease-in-out; border-left-width: 6px; }
+        @keyframes blink-alert { 0% { border-left-color: #ef4444; } 50% { border-left-color: #b91c1c; } 100% { border-left-color: #ef4444; } }
+
+        .task-checkbox { width: 22px; height: 22px; border: 2px solid #cbd5e1; border-radius: 5px; margin-right: 15px; cursor: pointer; flex-shrink: 0; display: grid; place-items: center; margin-top: 3px; }
+        .task-checkbox:hover { border-color: var(--primary); }
+        .task-content { flex-grow: 1; display: flex; flex-direction: column; padding-right: 10px; }
+        .task-title { font-size: 1rem; line-height: 1.5; word-break: break-all; padding: 2px 4px; border-radius: 4px; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; }
+        .task-meta { font-size: 0.8rem; color: var(--text-light); margin-top: 6px; line-height: 1.4; }
+        .completed-info { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; display: inline-block; font-weight: 500; }
+        .task-item.completed-item .task-title { color: #9ca3af; text-decoration: line-through; }
+        .ngs-badge { display: inline-block; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc; background: #fdfdfd; margin-right: 5px; margin-top: 3px; color: #555; }
+
+        .assign-badge { display: inline-block; font-size: 0.95rem; background-color: var(--assign-bg); color: white; padding: 4px 10px; border-radius: 6px; margin-left: 10px; vertical-align: middle; font-weight: 800; box-shadow: 0 2px 4px rgba(0,0,0,0.3); white-space: nowrap; letter-spacing: 0.5px; border: 1px solid #312e81; }
+
+        .action-area { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .btn-icon { background: none; border: 1px solid transparent; cursor: pointer; font-size: 1.2rem; padding: 2px 6px; color: #9ca3af; border-radius: 4px; }
+        .btn-icon:hover { background-color: #f3f4f6; color: var(--text-main); border-color: #ddd; }
+        .btn-delete:hover { color: var(--danger); }
+        .btn-restore { color: var(--success); font-size: 1rem; }
+        .btn-line:hover { color: var(--line-green); }
+        .btn-copy:hover { color: var(--primary); }
+        .btn-assign:hover { color: var(--assign-bg); background: #e0e7ff; }
+        .history-dot { cursor: pointer; color: #9ca3af; font-size: 1.2rem; padding: 0 6px; user-select: none; }
+        .history-dot:hover { color: var(--text-main); }
+        .fab { position: fixed; bottom: 2rem; right: 2rem; width: 60px; height: 60px; background: var(--primary); color: white; border-radius: 50%; font-size: 32px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: transform 0.2s; z-index: 800; }
+        .fab:hover { transform: scale(1.05); background: #0d9488; }
+
+        /* ---------- 共用 Modal 基底（模組會沿用這些 class） ---------- */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2100; justify-content: center; align-items: center; }
+        .modal-card { background: white; padding: 2rem; border-radius: 12px; width: 500px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); max-height: 90vh; overflow-y: auto; }
+        .modal-btns { display: flex; justify-content: flex-end; gap: 12px; margin-top: 1.5rem; }
+        .btn { padding: 9px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.95rem; }
+        .btn-cancel { background: #f3f4f6; color: #4b5563; }
+        .btn-save { background: var(--primary); color: white; }
+        .user-list, .assign-list { list-style: none; padding: 0; margin: 0; }
+        .user-item { display: flex; flex-direction: column; padding: 15px; border: 1px solid #eee; background: white; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: 0.2s; }
+        .user-item:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.05); transform: translateY(-1px); }
+
+        /* ---------- 任務編輯器 ---------- */
+        .editor-toolbar { display: flex; gap: 5px; margin-bottom: 5px; flex-wrap: wrap; padding: 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-bottom: none; border-radius: 6px 6px 0 0; align-items: center; }
+        .tool-btn { padding: 4px 8px; border: 1px solid #cbd5e1; background: white; border-radius: 4px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; margin-bottom: 4px;}
+        .color-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; border: 1px solid #ddd; }
+        .separator { width: 1px; height: 20px; background: #cbd5e1; margin: 0 4px; }
+        select.tool-select { padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem; }
+        #inputTitle { width: 100%; min-height: 80px; padding: 15px; border: 1px solid #d1d5db; border-radius: 0 0 6px 6px; box-sizing: border-box; font-size: 1rem; background: white; outline: none; overflow-y: auto; }
+        #inputTitle:focus { border-color: var(--primary); }
+        .input-group { margin-bottom: 1.2rem; }
+        .input-group label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.9rem; }
+        .input-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; }
+        .input-group input[type="text"] { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; }
+        #ngs-form-container { background: #f0fdfa; padding: 15px; border: 1px solid #ccfbf1; border-radius: 8px; margin-bottom: 15px; display: none; }
+        .ngs-row { margin-bottom: 10px; }
+        .ngs-row label { font-size: 0.85rem; color: #0f766e; font-weight: 600; margin-bottom: 4px; display: block; }
+        .ngs-row input, .ngs-row select { width: 100%; padding: 8px; border: 1px solid #5eead4; border-radius: 4px; font-size: 0.95rem; }
+        #importTextarea { width: 100%; height: 200px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: monospace; font-size: 0.9rem; white-space: pre; overflow: auto; }
+        .import-guide { font-size: 0.85rem; color: #666; margin-bottom: 10px; background: #f9f9f9; padding: 10px; border-radius: 4px; border: 1px solid #eee; }
+
+        /* ---------- 操作紀錄 / 統計 ---------- */
+        .log-list { list-style: none; padding: 0; margin: 0; max-height: 320px; overflow-y: auto; }
+        .log-item { padding: 10px; border-bottom: 1px solid #f3f4f6; font-size: 0.9rem; }
+        .log-time { font-size: 0.75rem; color: #9ca3af; }
+        .log-user { font-weight: 700; color: var(--primary); }
+        .stats-filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 15px 0; }
+        .stats-filter-row input, .stats-filter-row select { padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; }
+        .stats-result-area { max-height: 45vh; overflow-y: auto; }
+        .stat-card { background: #f9fafb; border: 1px solid #eee; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+        .stat-header { display: flex; justify-content: space-between; font-weight: 700; }
+        .stat-label { display: flex; justify-content: space-between; font-size: 0.8rem; color: #6b7280; margin-bottom: 4px; }
+        .stat-track { width: 100%; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+        .stat-fill { height: 100%; background: var(--primary); }
+
+        @media (max-width: 768px) {
+            #mobile-menu-btn { display: block; }
+            #sidebar-overlay { display: none; }
+            #sidebar-overlay.active { display: block; }
+            aside { position: fixed; top: 0; left: 0; height: 100%; width: 280px; z-index: 1000; transform: translateX(-100%); box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
+            aside.open { transform: translateX(0); }
+            main { padding-top: 70px; width: 100%; }
+            .task-item { flex-direction: column; }
+            .task-content { padding-right: 0; margin-bottom: 10px; }
+            .action-area { flex-direction: row; width: 100%; justify-content: flex-end; }
+            .fab { bottom: 20px; right: 20px; width: 50px; height: 50px; font-size: 28px; }
+        }
+    </style>
+</head>
+<body>
+
+<button id="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+<div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div id="auth-screen">
+    <div class="auth-box" id="authBox">
+        <h2 id="auth-title" style="color:#0f766e">系統登入</h2>
+        <input type="text" id="username" placeholder="帳號" autofocus>
+        <input type="password" id="password" placeholder="密碼">
+        <button class="auth-btn" id="btnAuthAction" onclick="window.handleAuth()">登入</button>
+        <div class="switch-auth" id="switchAuthLink" onclick="window.toggleAuthMode()">沒有帳號？註冊新帳號</div>
     </div>
 </div>
+
+<div id="app-screen" style="display:none;">
+    <aside>
+        <div class="sidebar-fixed">
+            <div class="user-profile">
+                <div class="avatar" id="userAvatar">U</div>
+                <div>
+                    <div style="font-weight: 600;" id="displayUsername">User</div>
+                    <div class="logout-link" onclick="window.logout()">登出帳號</div>
+                </div>
+            </div>
+
+            <button class="sidebar-btn btn-nav-active" id="btnTabTasks" onclick="window.switchTab('tasks')">📋 任務看板</button>
+            <button class="sidebar-btn btn-client-search" id="btnTabCustomers" onclick="window.switchTab('customers')">🏢 客戶位置查詢</button>
+            <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+        </div>
+
+        <div class="sidebar-scroll">
+            <!-- 模組專屬入口按鈕：id 由各 module 宣告，權限由 AppCore 統一控制 -->
+            <div class="admin-btn btn-purchase" id="purchaseBtn" onclick="window.switchTab('purchase')">📦 QIAGEN 採購進度</div>
+            <div class="admin-btn btn-member-settings" id="memberSettingsBtn" onclick="MemberSettingsModule.open()">👤 成員設定管理</div>
+
+            <!-- 任務看板自有的管理功能 -->
+            <div class="admin-btn btn-import" id="importBtn" onclick="window.openImportModal()">📥 批量匯入任務</div>
+            <div class="admin-btn btn-stats" id="statsPanelBtn" onclick="window.openStatsModal()">📊 任務完成統整</div>
+
+            <div class="sidebar-section" id="taskSearchSection">
+                <h3>🔍 搜尋任務</h3>
+                <div class="search-box">
+                    <input type="text" id="searchTaskInput" placeholder="輸入關鍵字..." oninput="window.handleSearch()">
+                    <ul class="search-results" id="searchResults"></ul>
+                </div>
+            </div>
+
+            <div class="sidebar-section" id="taskDateSection">
+                <h3>📅 日期選擇</h3>
+                <input type="date" id="dateSearch" onchange="window.changeDate(this.value)">
+            </div>
+
+            <div class="sidebar-section" style="margin-top:20px;">
+                <h3>🕒 最近檢視紀錄</h3>
+                <ul class="history-list" id="historyList"></ul>
+            </div>
+        </div>
+    </aside>
+
+    <main>
+        <div id="taskView" class="view-section active">
+            <header>
+                <div class="date-header" id="headerDateDisplay"></div>
+                <h1>中區收送件即時進度</h1>
+                <div class="overall-progress-container">
+                    <div class="progress-label"><span>當日總完成度</span><span id="overallProgressText">0%</span></div>
+                    <div class="progress-track"><div class="progress-fill" id="overallProgressBar" style="width: 0%"></div></div>
+                </div>
+            </header>
+            <div class="task-container" id="taskListContainer"></div>
+            <button class="fab" onclick="window.openModal()">+</button>
+        </div>
+
+        <!-- ===== 模組主畫面掛載點（由 module 自行注入 HTML） ===== -->
+        <div id="module-mount-views" style="display:contents;"></div>
+    </main>
+</div>
+
+<!-- ===== 模組彈窗掛載點（由 module 自行注入 HTML） ===== -->
+<div id="module-mount-modals"></div>
+
+<!-- ===== 任務看板自有彈窗 ===== -->
+<div class="modal-overlay" id="importModal">
+    <div class="modal-card" style="width: 500px;">
+        <h3 style="margin-top:0; color:#047857;">📥 簡易批量匯入</h3>
+        <div class="import-guide">請將 Excel 中的任務名稱複製，並貼在下方 (一行一筆)。</div>
+        <textarea id="importTextarea" placeholder="範例：&#10;台大醫院-陳教授-WES收件&#10;長庚醫院-林醫師-DNA萃取"></textarea>
+        <div style="margin-top:15px;"><label style="font-weight:bold;">匯入至哪個項目：</label><select id="importCategorySelect" style="width:100%; padding:8px; margin-top:5px; border-radius:4px; border:1px solid #ccc;"></select></div>
+        <div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('importModal').style.display='none'">取消</button><button class="btn btn-save" onclick="window.processImport()">確認匯入</button></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="taskModal"><div class="modal-card"><h2 id="modalTitle" style="margin-top:0; color:#111827;">新增案件/任務</h2><div class="input-group"><label>歸屬項目</label><select id="inputCategory" onchange="window.handleCategoryChange()"><option value="定序收件">📂 定序收件</option><option value="引子送件">🚀 引子送件</option><option value="產前收件">📦 產前收件</option><option value="業務交辦事項">📋 業務交辦事項</option><option value="NGS收件">🧬 NGS 收件 (需填詳細資料)</option></select></div><div id="ngs-form-container"><h4 style="margin-top:0; color:#0f766e;">📝 NGS 詳細資料 (必填)</h4><div class="ngs-row"><label>1. 單位</label><input type="text" id="ngsUnit" placeholder="輸入單位" oninput="window.generateNgsTitle()"></div><div class="ngs-row"><label>2. 主持人</label><input type="text" id="ngsPI" placeholder="輸入主持人" oninput="window.generateNgsTitle()"></div><div class="ngs-row"><label>3. 樣本處理需求</label><select id="ngsNeeds" onchange="window.handleNgsNeedsChange(); window.generateNgsTitle()"><option value="">請選擇</option><option value="萃取">萃取 (Extraction)</option><option value="QC">QC</option></select></div><div id="ngs-extraction-fields"><div class="ngs-row"><label>4-1.1 檢體種類</label><select id="ngsSampleTypeSelect" onchange="window.handleDropdownChange('ngsSampleTypeSelect', 'ngsSampleTypeInput')"><option value="Cell">Cell</option><option value="Blood">Blood</option><option value="Tissue">Tissue</option><option value="Plant">Plant</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsSampleTypeInput" placeholder="請輸入檢體種類" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-1.2 保存溫度</label><select id="ngsTemp"><option value="常溫">常溫</option><option value="4°C">4°C</option><option value="-20°C">-20°C</option><option value="-80°C">-80°C</option></select></div><div class="ngs-row"><label>4-1.3 歸還</label><select id="ngsReturn"><option value="是">是</option><option value="否">否</option></select></div><div class="ngs-row"><label>4-1.4 樣本數量</label><input type="text" id="ngsCount" placeholder="填寫數量"></div><div class="ngs-row"><label>4-1.5 後續實驗種類</label><select id="ngsExpTypeSelect" onchange="window.handleDropdownChange('ngsExpTypeSelect', 'ngsExpTypeInput'); window.generateNgsTitle()"><option value="">請選擇</option><option value="Seq Only">Seq Only</option><option value="DGE">DGE</option><option value="Small RNA">Small RNA</option><option value="WES">WES</option><option value="WGS">WGS</option><option value="PIPseq">PIPseq</option><option value="Amplicon Sequence">Amplicon Sequence</option><option value="細菌WGS">細菌WGS</option><option value="metagenome">metagenome</option><option value="16s">16s</option><option value="16sFL">16sFL</option><option value="Olink">Olink</option><option value="10x">10x</option><option value="RADseq">RADseq</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsExpTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;" oninput="window.generateNgsTitle()"></div><div class="ngs-row"><label>4-1.6 實驗平台</label><select id="ngsPlatformSelect" onchange="window.handleDropdownChange('ngsPlatformSelect', 'ngsPlatformInput')"><option value="Novaseq X Plus">Novaseq X Plus</option><option value="Miseq">Miseq</option><option value="PacBio">PacBio</option><option value="Nanopore">Nanopore</option><option value="Olink">Olink</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsPlatformInput" placeholder="輸入平台" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-1.7 負責業務</label><select id="ngsSales"></select></div></div><div id="ngs-qc-fields"><div class="ngs-row"><label>4-2.1 核酸種類</label><select id="ngsNucleicTypeSelect" onchange="window.handleDropdownChange('ngsNucleicTypeSelect', 'ngsNucleicTypeInput'); window.generateNgsTitle()"><option value="">請選擇</option><option value="DNA">DNA</option><option value="RNA">RNA</option><option value="Library">Library</option><option value="miRNA">miRNA</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsNucleicTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;" oninput="window.generateNgsTitle()"></div><div class="ngs-row"><label>4-2.2 保存溫度</label><select id="ngsQcTemp"><option value="常溫">常溫</option><option value="4°C">4°C</option><option value="-20°C">-20°C</option><option value="-80°C">-80°C</option></select></div><div class="ngs-row"><label>4-2.3 歸還</label><select id="ngsQcReturn"><option value="是">是</option><option value="否">否</option></select></div><div class="ngs-row"><label>4-2.4 樣本數量</label><input type="text" id="ngsQcCount" placeholder="填寫數量"></div><div class="ngs-row"><label>4-2.5 後續實驗種類</label><select id="ngsQcExpTypeSelect" onchange="window.handleDropdownChange('ngsQcExpTypeSelect', 'ngsQcExpTypeInput')"><option value="">請選擇</option><option value="Seq Only">Seq Only</option><option value="DGE">DGE</option><option value="Small RNA">Small RNA</option><option value="WES">WES</option><option value="WGS">WGS</option><option value="PIPseq">PIPseq</option><option value="Amplicon Sequence">Amplicon Sequence</option><option value="細菌WGS">細菌WGS</option><option value="metagenome">metagenome</option><option value="16s">16s</option><option value="16sFL">16sFL</option><option value="Olink">Olink</option><option value="10x">10x</option><option value="RADseq">RADseq</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsQcExpTypeInput" placeholder="輸入種類" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-2.6 實驗平台</label><select id="ngsQcPlatformSelect" onchange="window.handleDropdownChange('ngsQcPlatformSelect', 'ngsQcPlatformInput')"><option value="Novaseq X Plus">Novaseq X Plus</option><option value="Miseq">Miseq</option><option value="PacBio">PacBio</option><option value="Nanopore">Nanopore</option><option value="Olink">Olink</option><option value="其他">其他 (手動輸入)</option></select><input type="text" id="ngsQcPlatformInput" placeholder="輸入平台" style="display:none; margin-top:5px;"></div><div class="ngs-row"><label>4-2.7 負責業務</label><select id="ngsQcSales"></select></div></div></div><div class="input-group"><label>任務內容 (選取文字可編輯樣式)</label><div class="editor-toolbar"><button class="tool-btn" onclick="window.formatDoc('bold')" title="粗體"><b>B</b></button><div class="separator"></div><button class="tool-btn" onclick="window.formatDoc('foreColor', '#ef4444')" title="紅字"><span class="color-dot" style="background:#ef4444"></span></button><button class="tool-btn" onclick="window.formatDoc('foreColor', '#2563eb')" title="藍字"><span class="color-dot" style="background:#2563eb"></span></button><button class="tool-btn" onclick="window.formatDoc('foreColor', '#10b981')" title="綠字"><span class="color-dot" style="background:#10b981"></span></button><button class="tool-btn" onclick="window.formatDoc('foreColor', '#000000')" title="黑字"><span class="color-dot" style="background:#000000"></span></button><div class="separator"></div><button class="tool-btn" onclick="window.formatDoc('hiliteColor', '#fecaca')" title="紅底" style="background:#fecaca">A</button><button class="tool-btn" onclick="window.formatDoc('hiliteColor', '#bfdbfe')" title="藍底" style="background:#bfdbfe">A</button><button class="tool-btn" onclick="window.formatDoc('hiliteColor', '#bbf7d0')" title="綠底" style="background:#bbf7d0">A</button><button class="tool-btn" onclick="window.formatDoc('hiliteColor', '#ffffff')" title="無底" style="background:#fff">✕</button><div class="separator"></div><select class="tool-select" onchange="window.formatDoc('fontSize', this.value); this.value='';" title="字體大小"><option value="">字體大小</option><option value="2">小</option><option value="3">中</option><option value="5">大</option><option value="7">特大</option></select></div><div id="inputTitle" contenteditable="true" placeholder="輸入內容..."></div></div><div class="modal-btns"><button class="btn btn-cancel" onclick="window.closeModal()">取消</button><button class="btn btn-save" id="btnSaveTask" onclick="window.saveTask()">確認</button></div></div></div>
+
+<div class="modal-overlay" id="historyModal"><div class="modal-card" style="width: 400px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📋 編輯/操作紀錄</h3><ul class="log-list" id="logList"></ul><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('historyModal').style.display='none'">關閉</button></div></div></div>
+
+<div class="modal-overlay" id="statsModal"><div class="modal-card" style="width: 700px;"><h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📊 任務完成統整</h3><div class="stats-filter-row"><div><label style="font-size:0.8rem;">開始日期</label><input type="date" id="statsDateStart"></div><div><label style="font-size:0.8rem;">結束日期</label><input type="date" id="statsDateEnd"></div><div><label style="font-size:0.8rem;">檢索帳號</label><select id="statsUserSelect"><option value="all">-- 所有帳號 (總覽) --</option></select></div><div style="display:flex; align-items:flex-end;"><button class="btn btn-save" onclick="window.updateStats()">查詢</button></div></div><div class="stats-result-area" id="statsResultDisplay"></div><div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('statsModal').style.display='none'">關閉</button></div></div></div>
+
+<div class="modal-overlay" id="assignModal">
+    <div class="modal-card" style="width: 350px;">
+        <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">👤 指派任務給...</h3>
+        <ul class="assign-list" id="assignUserList"></ul>
+        <div class="modal-btns"><button class="btn btn-cancel" onclick="document.getElementById('assignModal').style.display='none'">取消</button></div>
+    </div>
+</div>
+
+
+<!-- =====================================================================
+     CORE：Firebase / state / 共用工具 / 任務看板
+     ===================================================================== -->
+<script>
+    // ==========================================
+    // 1. FIREBASE INIT (主資料庫：任務、使用者、設定)
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPcmgaT4f3nfyJrJOXnAeYCwH19SwZvCA",
+      authDomain: "tasktrack-app-206f8.firebaseapp.com",
+      projectId: "tasktrack-app-206f8",
+      storageBucket: "tasktrack-app-206f8.firebasestorage.app",
+      messagingSenderId: "528459789330",
+      appId: "1:528459789330:web:caca16ee7c2b4efa1754cb",
+      measurementId: "G-7JHGQW385H"
+    };
+
+    let mainApp;
+    try { mainApp = firebase.app("mainApp"); } catch(e) { mainApp = firebase.initializeApp(firebaseConfig, "mainApp"); }
+    const db = mainApp.firestore();
+
+    // ==========================================
+    // 2. GLOBAL STATE
+    // ==========================================
+    const ORDERED_CATEGORIES = ["定序收件", "引子送件", "產前收件", "業務交辦事項", "NGS收件"];
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw9sCxtJ-rcRLdkwwGJgBCUCKxCFXujD4Ciq_fJxFqbly4Wldb-9nTSE5kqTst16hKg2Q/exec";
+
+    let state = {
+        currentUser: null, currentDate: new Date().toISOString().split('T')[0], activeTab: 'tasks',
+        tasks: [], users: [], salesOptions: [], assignmentRules: {},
+        history: JSON.parse(localStorage.getItem('tt_history')||'[]'), editingTaskId: null
+    };
+    let assigningTaskId = null;
+
+    // ==========================================
+    // 3. 共用工具
+    // ==========================================
+    function getTodayStr() { return new Date().toISOString().split('T')[0]; }
+    function formatDoc(cmd, value) { document.execCommand(cmd, false, value); document.getElementById('inputTitle').focus(); }
+    function getUserDisplayName(username) { const u = state.users.find(x => x.username === username); return (u && u.nickname) ? u.nickname : username; }
+    function toggleSidebar() { document.querySelector('aside').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('active'); }
+    function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => alert("已複製通知內容！")).catch(err => prompt("請手動複製:", text)); }
+    function escAttr(s) {
+        return (s == null ? '' : String(s))
+            .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;');
+    }
+    function hasRole(roles) { return !!state.currentUser && roles.includes(state.currentUser.role); }
+
+    // ==========================================
+    // 4. AppCore ─ 模組唯一對外接口
+    //    模組只能透過 AppCore 取用核心資料與工具，
+    //    不直接互相呼叫，因此改 A 模組不會影響 B 模組。
+    // ==========================================
+    window.AppCore = {
+        // --- 資料層 ---
+        db: db,
+        get state() { return state; },
+        ORDERED_CATEGORIES: ORDERED_CATEGORIES,
+        GAS_API_URL: GAS_API_URL,
+
+        // --- 工具層 ---
+        getTodayStr, getUserDisplayName, escAttr, hasRole, escapeAttr: escAttr,
+        switchTab: (k) => switchTab(k),
+        renderTasks: () => { if (state.activeTab === 'tasks') renderTasks(); },
+
+        // --- 模組註冊 ---
+        _modules: [],
+        registerModule(mod) { this._modules.push(mod); },
+        getModule(key) { return this._modules.find(m => m.key === key) || null; },
+
+        // --- 極簡事件總線 ---
+        _events: {},
+        on(evt, fn) { (this._events[evt] = this._events[evt] || []).push(fn); },
+        emit(evt, payload) {
+            (this._events[evt] || []).forEach(fn => { try { fn(payload); } catch (e) { console.error('[AppCore event]', evt, e); } });
+        },
+
+        // --- 讓模組把自己的 HTML / CSS 掛進頁面 ---
+        mountView(html) { document.getElementById('module-mount-views').insertAdjacentHTML('beforeend', html); },
+        mountModal(html) { document.getElementById('module-mount-modals').insertAdjacentHTML('beforeend', html); },
+        injectStyle(css) { const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s); },
+
+        boot() { bootApp(); }
+    };
+
+    // ==========================================
+    // 5. 任務看板 ─ 客戶位置 badge 交給 CustomerModule
+    // ==========================================
+    function renderTaskLocationBadge(task) {
+        const M = AppCore.getModule('customers');
+        if (!M || typeof M.renderLocationBadge !== 'function') return '';
+        if (typeof M.isLocationCategory === 'function' && !M.isLocationCategory(task.category)) return '';
+        return M.renderLocationBadge(task);
+    }
+
+    function createTaskElement(task, isOverdue = false) {
+        const div = document.createElement('div'); div.className = `task-item ${isOverdue?'overdue-item':''} ${task.completed?'completed-item':''} ${task.isDeleted?'deleted-item':''}`;
+        div.setAttribute('data-cat', task.category);
+        let checkboxHtml = task.isDeleted ? '' : `<div class="task-checkbox" onclick="toggleTask('${task.id}')"></div>`;
+        let metaHtml = '';
+        if (task.completed && !task.isDeleted) { const d = new Date(task.completedAt); metaHtml = `<div class="task-meta">原始分類: ${task.category}<br><span class="completed-info">${getUserDisplayName(task.completedBy)} 於 ${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')} 完成</span></div>`; }
+        else if (isOverdue) { metaHtml = `<div class="task-meta"><span class="task-overdue-date">建立於: ${task.date}</span></div>`; }
+        let ngsInfoHtml = '';
+        if (task.details) {
+            ngsInfoHtml += `<div style="margin-top:5px; padding:5px; background:#f0fdfa; border-radius:4px; font-size:0.8rem; color:#0f766e;"><div><span class="ngs-badge">單位</span> ${task.details.unit}</div><div><span class="ngs-badge">主持人</span> ${task.details.pi}</div><div><span class="ngs-badge">需求</span> ${task.details.needs}</div>`;
+            if(task.details.needs === '萃取') ngsInfoHtml += `<div><span class="ngs-badge">種類</span> ${task.details.sampleType} | 數量:${task.details.sampleCount}</div><div><span class="ngs-badge">後續</span> ${task.details.expType} | 平台:${task.details.platform}</div><div><span class="ngs-badge">業務</span> ${task.details.sales} | 歸還:${task.details.returnBack} | ${task.details.temp}</div>`;
+            else if (task.details.needs === 'QC') ngsInfoHtml += `<div><span class="ngs-badge">核酸</span> ${task.details.nucleicType} | 數量:${task.details.sampleCount}</div><div><span class="ngs-badge">後續</span> ${task.details.expType} | 平台:${task.details.platform}</div><div><span class="ngs-badge">業務</span> ${task.details.sales} | 歸還:${task.details.returnBack} | ${task.details.temp}</div>`;
+            ngsInfoHtml += `</div>`;
+        }
+        let actionBtn = task.isDeleted ? `<button class="btn-icon btn-restore" onclick="restoreTask('${task.id}')">↩ 還原</button>` : `<button class="btn-icon btn-delete" onclick="deleteTask('${task.id}')">×</button>`;
+        let rightButtonsHtml = '';
+        if (!task.isDeleted) rightButtonsHtml += `<button onclick="openAssignModal('${task.id}', '${task.category}')" class="btn-icon btn-assign" title="指派任務">👤</button>`;
+        if (!task.isDeleted) {
+            let lineText = '';
+            if (task.category === 'NGS收件' && task.details) lineText = `【NGS案件通知】\n單位: ${task.details.unit}\n主持人: ${task.details.pi}\n項目: ${task.details.needs === '萃取' ? task.details.expType : task.details.nucleicType}\n負責業務: ${task.details.sales}`;
+            else { const plainTitle = task.title.replace(/<[^>]*>/g, ''); lineText = `【任務通知】\n${plainTitle}`; }
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (!isMobile) rightButtonsHtml += `<button onclick="copyToClipboard(\`${lineText.replace(/`/g, '\\`')}\`)" class="btn-icon btn-copy" title="複製通知文字">📋</button>`;
+            else { const encodedText = encodeURIComponent(lineText); rightButtonsHtml += `<a href="https://line.me/R/share?text=${encodedText}" target="_blank" class="btn-icon btn-line" style="text-decoration:none;" title="LINE通知">💬</a>`; }
+        }
+        let assignedBadge = task.assignedTo ? `<span class="assign-badge">${getUserDisplayName(task.assignedTo)}</span>` : '';
+        let locBadgeHtml = task.isDeleted ? '' : renderTaskLocationBadge(task);
+        const clickEvent = (!task.isDeleted) ? `onclick="openModal('${task.id}')"` : '';
+        div.innerHTML = `${checkboxHtml}<div class="task-content"><div class="task-title" ${clickEvent}>${task.title} ${assignedBadge}</div>${locBadgeHtml}${ngsInfoHtml}${metaHtml}</div><div class="action-area">${rightButtonsHtml}<div class="history-dot" onclick="showHistory('${task.id}')">⋮</div>${actionBtn}</div>`;
+        return div;
+    }
+
+    function renderTasks() {
+        const container = document.getElementById('taskListContainer'); container.innerHTML = '';
+        const overdueTasks = state.tasks.filter(t => t.date < state.currentDate && !t.completed && !t.isDeleted);
+        if (overdueTasks.length > 0) {
+            const group = document.createElement('div'); group.className = 'category-group overdue-section';
+            group.innerHTML = `<div class="category-header-row"><div class="cat-title">🚨 先前未完成 <span class="badge-count" style="background:#fee2e2; color:#b91c1c;">${overdueTasks.length}</span></div></div>`;
+            overdueTasks.sort((a,b)=>new Date(a.date)-new Date(b.date));
+            overdueTasks.forEach(t => group.appendChild(createTaskElement(t, true)));
+            container.appendChild(group);
+        }
+        const dayTasks = state.tasks.filter(t => t.date === state.currentDate);
+        const totalActive = dayTasks.filter(t => !t.isDeleted).length; const totalDone = dayTasks.filter(t => !t.isDeleted && t.completed).length;
+        const totalPct = totalActive===0?0:Math.round((totalDone/totalActive)*100);
+        document.getElementById('overallProgressText').innerText = `${totalDone}/${totalActive} (${totalPct}%)`; document.getElementById('overallProgressBar').style.width = `${totalPct}%`;
+        if (dayTasks.length === 0 && overdueTasks.length === 0) { container.innerHTML += `<div style="text-align:center; color:#9ca3b8; margin-top:60px;">本日無任何案件或任務</div>`; return; }
+        ORDERED_CATEGORIES.forEach(cat => {
+            const all = dayTasks.filter(t => t.category === cat && !t.isDeleted); const active = all.filter(t => !t.completed);
+            const pct = all.length===0?0:Math.round((all.filter(t=>t.completed).length/all.length)*100);
+            const group = document.createElement('div'); group.className = 'category-group';
+            group.innerHTML = `<div class="category-header-row"><div class="cat-title">${cat} <span class="badge-count">${active.length}</span></div><div style="font-size:0.8rem; color:#6b7280; font-weight:600;">${pct}%</div></div><div class="cat-progress-track"><div class="cat-progress-fill" style="width: ${pct}%"></div></div>`;
+            if (active.length > 0) {
+                let ordered = active;
+                if (cat === '定序收件') {
+                    // 解析每筆：idnum = title 第 1 行 【 之前；unit = 第 2 行的學校/機構名
+                    const parsed = active.map(t => {
+                        const lines = (t.title || '').split('<br>');
+                        const idnum = (lines[0] || '').split('【')[0].trim();
+                        const line2 = (lines[1] || '').trim();
+                        const bIdx = line2.indexOf('【');
+                        let unit;
+                        if (bIdx > 0) unit = line2.substring(0, bIdx).trim();
+                        else { const sp = line2.lastIndexOf(' '); unit = sp > 0 ? line2.substring(0, sp).trim() : line2; }
+                        const dashIdx = unit.search(/[—－]/);
+                        if (dashIdx > 0) unit = unit.substring(0, dashIdx).trim();
+                        return { t, idnum, unit };
+                    });
+                    const unitMax = new Map();
+                    parsed.forEach(p => { if (!unitMax.has(p.unit) || p.idnum > unitMax.get(p.unit)) unitMax.set(p.unit, p.idnum); });
+                    parsed.sort((a, b) => {
+                        const ua = unitMax.get(a.unit), ub = unitMax.get(b.unit);
+                        if (ua !== ub) return ub.localeCompare(ua);
+                        if (a.unit !== b.unit) return a.unit.localeCompare(b.unit);
+                        return b.idnum.localeCompare(a.idnum);
+                    });
+                    ordered = parsed.map(p => p.t);
+                }
+                ordered.forEach(t => group.appendChild(createTaskElement(t)));
+            } else {
+                group.innerHTML += `<div style="font-size:0.9rem; color:#d1d5db; padding-left:10px; margin-bottom:10px;">無待辦事項</div>`;
+            }
+            container.appendChild(group);
+        });
+        const completedTasks = dayTasks.filter(t => t.completed && !t.isDeleted);
+        if (completedTasks.length > 0) {
+            const compSection = document.createElement('div'); compSection.className = 'category-group completed-section';
+            compSection.innerHTML = `<div class="category-header-row"><div class="cat-title">✅ 已完成項目 (總覽) <span class="badge-count">${completedTasks.length}</span></div></div>`;
+            ORDERED_CATEGORIES.forEach(cat => {
+                const subTasks = completedTasks.filter(t => t.category === cat);
+                if (subTasks.length > 0) {
+                    const details = document.createElement('details'); details.innerHTML = `<summary>${cat} (${subTasks.length})</summary><div class="details-content"></div>`;
+                    const content = details.querySelector('.details-content');
+                    subTasks.sort((a,b)=>new Date(a.completedAt)-new Date(b.completedAt));
+                    subTasks.forEach(t => content.appendChild(createTaskElement(t)));
+                    compSection.appendChild(details);
+                }
+            });
+            container.appendChild(compSection);
+        }
+        const deletedTasks = dayTasks.filter(t => t.isDeleted);
+        if (deletedTasks.length > 0) {
+            const delSection = document.createElement('div'); delSection.className = 'category-group deleted-section';
+            delSection.innerHTML = `<div class="category-header-row"><div class="cat-title">🗑️ 被刪除項目 (總覽) <span class="badge-count">${deletedTasks.length}</span></div></div>`;
+            ORDERED_CATEGORIES.forEach(cat => {
+                const subTasks = deletedTasks.filter(t => t.category === cat);
+                if (subTasks.length > 0) {
+                    const details = document.createElement('details'); details.innerHTML = `<summary>${cat} (${subTasks.length})</summary><div class="details-content"></div>`;
+                    const content = details.querySelector('.details-content');
+                    subTasks.forEach(t => content.appendChild(createTaskElement(t)));
+                    delSection.appendChild(details);
+                }
+            });
+            container.appendChild(delSection);
+        }
+    }
+
+    function changeDate(d, addHistory = true) {
+        state.currentDate = d;
+        document.getElementById('dateSearch').value = d;
+        const dateObj = new Date(d);
+        document.getElementById('headerDateDisplay').innerText = dateObj.toLocaleDateString('zh-TW', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+        if(addHistory) {
+            let hist = state.history.filter(x => x !== d);
+            hist.unshift(d);
+            if(hist.length > 10) hist.pop();
+            state.history = hist;
+            localStorage.setItem('tt_history', JSON.stringify(hist));
+            renderHistory();
+        }
+        renderTasks();
+    }
+
+    function renderHistory() {
+        const ul = document.getElementById('historyList');
+        ul.innerHTML = '';
+        state.history.forEach(d => {
+            const li = document.createElement('li');
+            li.className = `history-item ${d === state.currentDate?'active':''}`;
+            li.innerText = d;
+            li.onclick = () => { changeDate(d, false); if(window.innerWidth<=768) toggleSidebar(); };
+            ul.appendChild(li);
+        });
+    }
+
+    // ==========================================
+    // 6. 分頁切換（模組化：走註冊表，不再寫死）
+    // ==========================================
+    function switchTab(tab) {
+        state.activeTab = tab;
+
+        // 1) 全部隱藏
+        document.getElementById('taskView').classList.remove('active');
+        AppCore._modules.forEach(m => {
+            if (!m.viewId) return;
+            const el = document.getElementById(m.viewId);
+            if (el) el.classList.remove('active');
+        });
+
+        // 2) 側邊按鈕外觀復原
+        document.getElementById('btnTabTasks').className = `sidebar-btn ${tab==='tasks'?'btn-nav-active':'btn-nav-inactive'}`;
+        document.getElementById('btnTabCustomers').className = `sidebar-btn ${tab==='customers'?'btn-nav-active':'btn-nav-inactive'}`;
+        AppCore._modules.forEach(m => {
+            if (!m.navButtonId || !m.navButtonClass) return;
+            const btn = document.getElementById(m.navButtonId);
+            if (btn) btn.className = `admin-btn ${m.navButtonClass} ${tab===m.key?'btn-nav-active':''}`;
+        });
+
+        // 3) 顯示目標 + 只有任務看板需要日期/搜尋
+        const isTasks = (tab === 'tasks');
+        const secSearch = document.getElementById('taskSearchSection');
+        const secDate = document.getElementById('taskDateSection');
+        if (secSearch) secSearch.style.display = isTasks ? 'block' : 'none';
+        if (secDate) secDate.style.display = isTasks ? 'block' : 'none';
+
+        if (isTasks) {
+            document.getElementById('taskView').classList.add('active');
+        } else {
+            const mod = AppCore.getModule(tab);
+            if (mod && mod.viewId) {
+                const el = document.getElementById(mod.viewId);
+                if (el) el.classList.add('active');
+                if (typeof mod.activate === 'function') mod.activate();
+            }
+        }
+        if(window.innerWidth <= 768) toggleSidebar();
+    }
+
+    // ==========================================
+    // 7. 任務 CRUD / NGS 表單 / 匯入 / 搜尋 / 統計
+    // ==========================================
+    function populateSalesDropdowns() { const optsHtml = state.salesOptions.map(s => `<option value="${s}">${s}</option>`).join(''); const s1 = document.getElementById('ngsSales'); const s2 = document.getElementById('ngsQcSales'); if(s1) s1.innerHTML = optsHtml; if(s2) s2.innerHTML = optsHtml; }
+
+    function handleCategoryChange() {
+        const cat = document.getElementById('inputCategory').value;
+        document.getElementById('ngs-form-container').style.display = (cat === 'NGS收件') ? 'block' : 'none';
+    }
+
+    function handleNgsNeedsChange() {
+        const needs = document.getElementById('ngsNeeds').value;
+        document.getElementById('ngs-extraction-fields').style.display = (needs === '萃取') ? 'block' : 'none';
+        document.getElementById('ngs-qc-fields').style.display = (needs === 'QC') ? 'block' : 'none';
+    }
+
+    function handleDropdownChange(selectId, inputId) {
+        const val = document.getElementById(selectId).value;
+        document.getElementById(inputId).style.display = (val === '其他') ? 'block' : 'none';
+    }
+
+    function generateNgsTitle() {
+        const unit = document.getElementById('ngsUnit').value.trim();
+        const pi = document.getElementById('ngsPI').value.trim();
+        const needs = document.getElementById('ngsNeeds').value;
+        let subType = '';
+        if (needs === '萃取') {
+            const sel = document.getElementById('ngsExpTypeSelect').value;
+            subType = (sel === '其他') ? document.getElementById('ngsExpTypeInput').value.trim() : sel;
+        } else if (needs === 'QC') {
+            const sel = document.getElementById('ngsNucleicTypeSelect').value;
+            subType = (sel === '其他') ? document.getElementById('ngsNucleicTypeInput').value.trim() : sel;
+        }
+        if (unit && pi && subType) {
+            document.getElementById('inputTitle').innerText = `${unit}-${pi}-${subType} 收件`;
+        }
+    }
+
+    function openModal(taskId=null) {
+        populateSalesDropdowns();
+        const editor=document.getElementById('inputTitle');
+        document.getElementById('taskModal').style.display='flex';
+        editor.focus();
+        document.getElementById('ngs-form-container').style.display = 'none';
+        document.getElementById('ngsUnit').value = '';
+        document.getElementById('ngsPI').value = '';
+        document.getElementById('ngsNeeds').value = '';
+        document.getElementById('ngs-extraction-fields').style.display = 'none';
+        document.getElementById('ngs-qc-fields').style.display = 'none';
+
+        if(taskId) {
+            state.editingTaskId=taskId;
+            const t=state.tasks.find(x=>x.id===taskId);
+            document.getElementById('modalTitle').innerText='編輯任務內容';
+            editor.innerHTML=t.title;
+            document.getElementById('inputCategory').value=t.category;
+            document.getElementById('btnSaveTask').innerText='保存修改';
+
+            if (t.category === 'NGS收件' && t.details) {
+                document.getElementById('ngs-form-container').style.display = 'block';
+                document.getElementById('ngsUnit').value = t.details.unit || '';
+                document.getElementById('ngsPI').value = t.details.pi || '';
+                document.getElementById('ngsNeeds').value = t.details.needs || '';
+                const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val||''; };
+                const setDropdown = (selId, inpId, val, opts) => {
+                    if(opts.includes(val)) { document.getElementById(selId).value=val; document.getElementById(inpId).style.display='none'; } else { document.getElementById(selId).value='其他'; document.getElementById(inpId).style.display='block'; document.getElementById(inpId).value=val; }
+                };
+                if (t.details.needs === '萃取') {
+                    document.getElementById('ngs-extraction-fields').style.display = 'block';
+                    setVal('ngsTemp', t.details.temp);
+                    setVal('ngsReturn', t.details.returnBack);
+                    setVal('ngsCount', t.details.sampleCount);
+                    setVal('ngsSales', t.details.sales);
+                    setDropdown('ngsSampleTypeSelect', 'ngsSampleTypeInput', t.details.sampleType, ['Cell','Blood','Tissue','Plant']);
+                    setDropdown('ngsExpTypeSelect', 'ngsExpTypeInput', t.details.expType, ['Seq Only','DGE','Small RNA','WES','WGS','PIPseq','Amplicon Sequence','細菌WGS','metagenome','16s','16sFL','Olink','10x','RADseq']);
+                    setDropdown('ngsPlatformSelect', 'ngsPlatformInput', t.details.platform, ['Novaseq X Plus','Miseq','PacBio','Nanopore','Olink']);
+                } else if (t.details.needs === 'QC') {
+                    document.getElementById('ngs-qc-fields').style.display = 'block';
+                    setVal('ngsQcTemp', t.details.temp);
+                    setVal('ngsQcReturn', t.details.returnBack);
+                    setVal('ngsQcCount', t.details.sampleCount);
+                    setVal('ngsQcSales', t.details.sales);
+                    setDropdown('ngsNucleicTypeSelect', 'ngsNucleicTypeInput', t.details.nucleicType, ['DNA','RNA','Library','miRNA']);
+                    setDropdown('ngsQcExpTypeSelect', 'ngsQcExpTypeInput', t.details.expType, ['Seq Only','DGE','Small RNA','WES','WGS','PIPseq','Amplicon Sequence','細菌WGS','metagenome','16s','16sFL','Olink','10x','RADseq']);
+                    setDropdown('ngsQcPlatformSelect', 'ngsQcPlatformInput', t.details.platform, ['Novaseq X Plus','Miseq','PacBio','Nanopore','Olink']);
+                }
+            }
+        } else {
+            state.editingTaskId=null;
+            document.getElementById('modalTitle').innerText='新增案件/任務';
+            editor.innerHTML='';
+            document.getElementById('btnSaveTask').innerText='確認新增';
+            document.getElementById('inputCategory').value = '定序收件';
+        }
+    }
+
+    function closeModal() { document.getElementById('taskModal').style.display='none'; state.editingTaskId=null; }
+
+    function saveTask() {
+        const htmlContent = document.getElementById('inputTitle').innerHTML.trim(); const category = document.getElementById('inputCategory').value;
+        const textContent = document.getElementById('inputTitle').innerText.trim();
+        if(textContent === '' && !htmlContent.includes('<img')) return alert('請輸入任務內容');
+        let details = null;
+        if (category === 'NGS收件') {
+            const unit = document.getElementById('ngsUnit').value.trim(); const pi = document.getElementById('ngsPI').value.trim(); const needs = document.getElementById('ngsNeeds').value;
+            if (!unit || !pi || !needs) return alert('請完整填寫 NGS 詳細資料');
+            details = { unit, pi, needs };
+            if (needs === '萃取' || needs === 'QC') {
+                const prefix = needs === '萃取' ? 'ngs' : 'ngsQc';
+                if (needs === '萃取') { details.sampleType = getDropdownOrInput('ngsSampleTypeSelect', 'ngsSampleTypeInput'); if (!details.sampleType) return alert('請填寫檢體種類'); }
+                else { details.nucleicType = getDropdownOrInput('ngsNucleicTypeSelect', 'ngsNucleicTypeInput'); if (!details.nucleicType) return alert('請填寫核酸種類'); }
+                details.temp = document.getElementById(prefix + 'Temp').value; details.returnBack = document.getElementById(prefix + 'Return').value;
+                details.sampleCount = document.getElementById(prefix + 'Count').value.trim(); details.expType = getDropdownOrInput(prefix + 'ExpTypeSelect', prefix + 'ExpTypeInput');
+                details.platform = getDropdownOrInput(prefix + 'PlatformSelect', prefix + 'PlatformInput'); details.sales = document.getElementById(prefix + 'Sales').value;
+                if (!details.sampleCount || !details.expType || !details.platform) return alert('請完整填寫詳細資料');
+            }
+        }
+        if(state.editingTaskId) { updateTaskDb(state.editingTaskId, { title: htmlContent, category: category, details: details }, '修改', '編輯任務內容/分類'); }
+        else { const newTask = { title: htmlContent, category: category, date: state.currentDate, completed: false, isDeleted: false, logs: [], createdAt: new Date().toISOString(), details: details }; newTask.logs.push({ type: '建立', desc: `建立任務於 [${category}]`, user: state.currentUser.name, time: new Date().toISOString() }); db.collection('tasks').add(newTask); }
+        closeModal();
+    }
+
+    function getDropdownOrInput(selectId, inputId) { const sel = document.getElementById(selectId).value; return (sel === '其他') ? document.getElementById(inputId).value.trim() : sel; }
+    function toggleTask(id) { const task = state.tasks.find(t => t.id === id); if(task) { const newVal = !task.completed; updateTaskDb(id, { completed: newVal, completedBy: newVal ? state.currentUser.name : null, completedAt: newVal ? new Date().toISOString() : null }, newVal ? '完成' : '重啟', newVal ? '標記為完成' : '取消完成狀態'); } }
+    function updateTaskDb(id, data, logType, logDesc) { const task = state.tasks.find(t => t.id === id); const newLogs = task.logs || []; newLogs.unshift({ type: logType, desc: logDesc, user: state.currentUser.name, time: new Date().toISOString() }); db.collection('tasks').doc(id).update({ ...data, logs: newLogs }); }
+    function showHistory(id) { const t = state.tasks.find(x=>x.id===id); if(!t) return; const list = document.getElementById('logList'); list.innerHTML=''; (t.logs||[]).forEach(l => { const d=new Date(l.time); const timeStr=`${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes()}`; const userDisp = getUserDisplayName(l.user); list.innerHTML+=`<li class="log-item"><div class="log-time">${timeStr}</div><div class="log-content"><span class="log-user">${userDisp}</span> ${l.desc}</div></li>`; }); document.getElementById('historyModal').style.display='flex'; }
+    function restoreTask(id) { updateTaskDb(id, { isDeleted: false }, '還原', '從刪除項目中還原'); }
+    function deleteTask(id) { if(confirm('移至被刪除項目？')) updateTaskDb(id, { isDeleted: true }, '刪除', '移至被刪除項目'); }
+
+    function openAssignModal(taskId, category) {
+        assigningTaskId = taskId; const list = document.getElementById('assignUserList'); list.innerHTML = '';
+        const allowedUsers = state.assignmentRules[category] || [];
+        let targetUsers = [];
+        if (allowedUsers.length > 0) targetUsers = state.users.filter(u => allowedUsers.includes(u.username));
+        else targetUsers = state.users.filter(u => u.isApproved);
+        if (targetUsers.length === 0) { list.innerHTML = '<li style="padding:10px; color:#666;">無可用指派對象，請至「成員設定管理」設定。</li>'; }
+        targetUsers.forEach(u => {
+            const li = document.createElement('li'); li.className = 'user-item'; li.style.cursor = 'pointer';
+            const dName = u.nickname || u.username;
+            li.innerHTML = `<div style="font-weight:bold; width:100%; padding:5px;" onclick="confirmAssign('${u.username}')">${dName}</div>`;
+            list.appendChild(li);
+        });
+        document.getElementById('assignModal').style.display = 'flex';
+    }
+
+    function confirmAssign(username) {
+        if(!assigningTaskId) return;
+        updateTaskDb(assigningTaskId, { assignedTo: username }, '指派', `指派給 ${getUserDisplayName(username)}`);
+        document.getElementById('assignModal').style.display = 'none'; assigningTaskId = null;
+    }
+
+    function openImportModal() {
+        const select = document.getElementById('importCategorySelect'); select.innerHTML = '';
+        ORDERED_CATEGORIES.forEach(cat => { if (cat !== 'NGS收件') { const opt = document.createElement('option'); opt.value = cat; opt.innerText = cat; select.appendChild(opt); } });
+        document.getElementById('importModal').style.display = 'flex'; document.getElementById('importTextarea').value = '';
+    }
+
+    async function processImport() {
+        const raw = document.getElementById('importTextarea').value.trim(); const cat = document.getElementById('importCategorySelect').value;
+        if(!raw) return alert("請輸入內容");
+        const lines = raw.split('\n'); let successCount = 0;
+        for (let i = 0; i < lines.length; i++) {
+            const title = lines[i].trim(); if(!title) continue;
+            try { await db.collection('tasks').add({ category: cat, title: title, details: null, date: state.currentDate, completed: false, isDeleted: false, logs: [{ type: '匯入', desc: '批量匯入', user: state.currentUser.name, time: new Date().toISOString() }], createdAt: new Date().toISOString() }); successCount++; } catch(e) { console.error(e); }
+        }
+        alert(`匯入完成！成功: ${successCount}`); document.getElementById('importModal').style.display = 'none';
+    }
+
+    function handleSearch() {
+        const input = document.getElementById('searchTaskInput');
+        const list = document.getElementById('searchResults');
+        const val = input.value.trim().toLowerCase();
+        list.innerHTML = ''; list.style.display = 'none';
+        if (!val) return;
+        const matches = state.tasks.filter(t => {
+            const rawTitle = t.title ? t.title.replace(/<[^>]+>/g, '') : '';
+            return rawTitle.toLowerCase().includes(val);
+        });
+        if (matches.length > 0) {
+            list.style.display = 'block';
+            matches.sort((a,b) => new Date(b.date) - new Date(a.date));
+            matches.slice(0, 20).forEach(t => {
+                const li = document.createElement('li'); li.className = 'search-item';
+                const rawTitle = t.title.replace(/<[^>]+>/g, '');
+                li.innerHTML = `<div style="font-weight:bold;">${rawTitle}</div><div style="font-size:0.8rem; color:#666;">📅 ${t.date}</div>`;
+                li.onclick = () => { changeDate(t.date); input.value = ''; list.style.display = 'none'; if(window.innerWidth <= 768) toggleSidebar(); };
+                list.appendChild(li);
+            });
+        } else { list.style.display = 'block'; list.innerHTML = '<li style="padding:10px; color:#999; text-align:center;">無符合結果</li>'; }
+    }
+
+    function openStatsModal() {
+        const modal = document.getElementById('statsModal');
+        const userSelect = document.getElementById('statsUserSelect');
+        const startInput = document.getElementById('statsDateStart');
+        const endInput = document.getElementById('statsDateEnd');
+        userSelect.innerHTML = '<option value="all">-- 所有帳號 (總覽) --</option>';
+        const uniqueUsers = [...new Set(state.tasks.filter(t=>t.completed && t.completedBy).map(t=>t.completedBy))];
+        uniqueUsers.sort().forEach(u => { const opt = document.createElement('option'); opt.value = u; opt.innerText = getUserDisplayName(u); userSelect.appendChild(opt); });
+        const year = new Date().getFullYear();
+        startInput.value = `${year}-01-01`; endInput.value = `${year}-12-31`;
+        updateStats();
+        modal.style.display = 'flex';
+    }
+
+    function updateStats() {
+        const start = document.getElementById('statsDateStart').value; const end = document.getElementById('statsDateEnd').value;
+        const selectedUser = document.getElementById('statsUserSelect').value; const display = document.getElementById('statsResultDisplay'); display.innerHTML = '';
+        if(!start || !end) return;
+        const validTasks = state.tasks.filter(t => !t.completed || t.isDeleted || !t.completedBy ? false : (t.date >= start && t.date <= end));
+        if (selectedUser === 'all') {
+            const userCounts = {}; let total = 0;
+            validTasks.forEach(t => { if(!userCounts[t.completedBy]) userCounts[t.completedBy]=0; userCounts[t.completedBy]++; total++; });
+            if(total === 0) { display.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">此區間無完成資料</div>'; return; }
+            Object.entries(userCounts).sort((a,b)=>b[1]-a[1]).forEach(([user, count]) => {
+                const pct = Math.round((count/total)*100);
+                const card = document.createElement('div'); card.className = 'stat-card';
+                card.innerHTML = `<div class="stat-header"><span>${getUserDisplayName(user)}</span> <span>${count} 件</span></div><div class="stat-bar-container"><div class="stat-label"><span>佔比</span><span>${pct}%</span></div><div class="stat-track"><div class="stat-fill" style="width:${pct}%"></div></div></div>`;
+                display.appendChild(card);
+            });
+        } else {
+            const userTasks = validTasks.filter(t => t.completedBy === selectedUser); const total = userTasks.length;
+            if(total === 0) { display.innerHTML = `<div style="text-align:center; padding:20px; color:#888;">帳號 ${getUserDisplayName(selectedUser)} 在此區間無完成資料</div>`; return; }
+            const catCounts = {}; ORDERED_CATEGORIES.forEach(c => catCounts[c]=0);
+            userTasks.forEach(t => { if(catCounts[t.category]!==undefined) catCounts[t.category]++; });
+            const card = document.createElement('div'); card.className = 'stat-card';
+            card.innerHTML = `<div class="stat-header" style="border-bottom:1px solid #eee; padding-bottom:5px;">${getUserDisplayName(selectedUser)} - 總計 ${total} 件</div>`;
+            ORDERED_CATEGORIES.forEach(cat => {
+                const count = catCounts[cat]; const pct = total===0?0:Math.round((count/total)*100);
+                card.innerHTML += `<div style="margin-top:10px;"><div class="stat-label"><span>${cat}</span><span>${count} (${pct}%)</span></div><div class="stat-track"><div class="stat-fill" style="width:${pct}%"></div></div></div>`;
+            });
+            display.appendChild(card);
+        }
+    }
+
+    // ==========================================
+    // 8. AUTH & 角色 UI
+    // ==========================================
+    async function handleAuth() {
+        const u = document.getElementById('username').value.trim(); const p = document.getElementById('password').value.trim();
+        const title = document.getElementById('auth-title').innerText; const btn = document.getElementById('btnAuthAction');
+        if(!u || !p) return alert('請輸入帳號密碼'); btn.disabled = true;
+        try {
+            if (title.includes('註冊')) {
+                if (u.toLowerCase() === 'admin') throw new Error('不可使用 Admin 作為帳號');
+                const q = await db.collection('users').where('username', '==', u).get();
+                if (!q.empty) throw new Error('帳號已存在');
+                await db.collection('users').add({ username: u, password: p, isApproved: false, role: 'user', remarks: '', nickname: '' });
+                alert('註冊成功！待管理員核准後方可登入。');
+                toggleAuthMode();
+            } else {
+                if (u === 'Admin' && p === 'Abcd1234') {
+                    const q = await db.collection('users').where('username', '==', 'Admin').get();
+                    if(q.empty) await db.collection('users').add({ username: 'Admin', password: p, isApproved: true, role: 'creator', remarks: '創世神', nickname: '系統管理員' });
+                    loginSuccess('Admin', 'creator');
+                } else {
+                    const q = await db.collection('users').where('username', '==', u).where('password', '==', p).get();
+                    if (q.empty) alert('帳號或密碼錯誤');
+                    else {
+                        const user = q.docs[0].data();
+                        if (!user.isApproved) alert('⚠️ 您的帳號尚未通過審核。');
+                        else loginSuccess(user.username, user.role || 'user');
+                    }
+                }
+            }
+        } catch (e) { alert(e.message || '發生錯誤'); console.error(e); }
+        finally { btn.disabled = false; }
+    }
+
+    function toggleAuthMode() {
+        const title = document.getElementById('auth-title'); const btn = document.getElementById('btnAuthAction'); const link = document.getElementById('switchAuthLink');
+        if (title.innerText.includes('登入')) { title.innerText = '註冊新帳號'; btn.innerText = '註冊'; link.innerText = '已有帳號？登入'; }
+        else { title.innerText = '系統登入'; btn.innerText = '登入'; link.innerText = '沒有帳號？註冊新帳號'; }
+    }
+
+    function loginSuccess(username, role) {
+        state.currentUser = { name: username, role: role };
+        localStorage.setItem('tt_current_user', JSON.stringify(state.currentUser));
+        initApp();
+    }
+
+    function logout() {
+        localStorage.removeItem('tt_current_user');
+        location.reload();
+    }
+
+    function initApp() {
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('app-screen').style.display = 'flex';
+        updateUIForRole();
+        changeDate(state.currentDate, false);
+        AppCore.emit('user:login', state.currentUser);
+    }
+
+    function updateUIForRole() {
+        if(!state.currentUser) return;
+        const dispName = getUserDisplayName(state.currentUser.name);
+        document.getElementById('displayUsername').innerText = dispName;
+        document.getElementById('userAvatar').innerText = dispName[0].toUpperCase();
+
+        // 任務看板自有按鈕
+        const canManage = hasRole(['creator','senior','admin']);
+        const canConfig = hasRole(['creator','senior']);
+        document.getElementById('importBtn').style.display = canManage ? 'block' : 'none';
+        document.getElementById('statsPanelBtn').style.display = canConfig ? 'block' : 'none';
+
+        // 模組按鈕：依模組自己宣告的 requiredRoles 決定
+        AppCore._modules.forEach(m => {
+            if (!m.navButtonId) return;
+            const btn = document.getElementById(m.navButtonId);
+            if (!btn) return;
+            const allowed = !m.requiredRoles || hasRole(m.requiredRoles);
+            btn.style.display = allowed ? 'block' : 'none';
+        });
+    }
+
+    // ==========================================
+    // 9. BOOT（模組全部載入後才呼叫）
+    // ==========================================
+    function bootApp() {
+        // 初始化所有模組
+        AppCore._modules.forEach(m => {
+            try { if (typeof m.init === 'function') m.init(AppCore); }
+            catch (e) { console.error('[Module init failed]', m.key, e); }
+        });
+
+        // 還原登入狀態
+        const storedUser = localStorage.getItem('tt_current_user');
+        if (storedUser) {
+            state.currentUser = JSON.parse(storedUser);
+            initApp();
+        }
+
+        // Firestore listeners（核心資料，透過事件廣播給模組）
+        db.collection('tasks').onSnapshot(snapshot => {
+            state.tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if(state.activeTab === 'tasks') renderTasks();
+            AppCore.emit('tasks:changed', state.tasks);
+        });
+
+        db.collection('users').onSnapshot(snapshot => {
+            state.users = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
+            updateUIForRole();
+            AppCore.emit('users:changed', state.users);
+        });
+
+        db.collection('settings').doc('ngs_sales').onSnapshot(doc => {
+            if(doc.exists) state.salesOptions = doc.data().list || ['Jeff', '廖軒逵'];
+            else { state.salesOptions = ['Jeff', '廖軒逵']; db.collection('settings').doc('ngs_sales').set({ list: state.salesOptions }); }
+            AppCore.emit('salesOptions:changed', state.salesOptions);
+        });
+
+        db.collection('settings').doc('assignment_rules').onSnapshot(doc => {
+            state.assignmentRules = doc.exists ? doc.data() : {};
+            AppCore.emit('assignmentRules:changed', state.assignmentRules);
+        });
+    }
+</script>
+
+<!-- =====================================================================
+     MODULES：每個檔案自成一格，互不相依
+     ===================================================================== -->
+<script src="modules/customer.module.js"></script>
+<script src="modules/purchase.module.js"></script>
+<script src="modules/member-settings.module.js"></script>
+
+<script>
+    // 所有模組註冊完成後才啟動
+    AppCore.boot();
+</script>
+</body>
+</html>
