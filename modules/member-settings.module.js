@@ -53,6 +53,16 @@
     #memberSettingsModal .btn-reject:hover { background: #fee2e2; }
     #memberSettingsModal .btn-icon-eye { background: none; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; padding: 6px 8px; }
 
+    /* 分頁使用權限勾選區 */
+    #memberSettingsModal .ms-perm-row { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; margin-bottom: 10px; gap: 8px; }
+    #memberSettingsModal .ms-perm-title { width: 100%; font-size: 0.85rem; font-weight: 600; color: #4b5563; margin-bottom: 2px; }
+    #memberSettingsModal .ms-perm-item { display: flex; align-items: center; font-size: 0.9rem; background: white; padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+    #memberSettingsModal .ms-perm-item:hover { border-color: var(--primary); }
+    #memberSettingsModal .ms-perm-item input { margin-right: 6px; }
+    #memberSettingsModal .ms-perm-item input:disabled { cursor: not-allowed; }
+    #memberSettingsModal .ms-perm-item.is-locked { background: #faf5ff; border-color: #e9d5ff; color: #6b21a8; cursor: default; }
+    #memberSettingsModal .ms-perm-hint { width: 100%; font-size: 0.78rem; color: #9ca3af; margin-top: 2px; }
+
     /* ② 標籤選單 */
     #memberSettingsModal .settings-list { list-style: none; padding: 0; margin: 0; }
     #memberSettingsModal .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
@@ -150,6 +160,39 @@
     /* =================================================================
      * ① 成員權限
      * ================================================================= */
+    /**
+     * 產生「分頁使用權限」勾選區
+     * @param {object}  user     使用者資料
+     * @param {boolean} editable 是否可勾選（僅創世神／高級管理者可編輯）
+     */
+    function permCheckboxesHtml(user, editable) {
+        var items = core.getPermissionItems();      // 由核心 + 各模組自動組成
+        var perms = core.getPermsFor(user);         // 含預設值推算結果
+        var isCreator = (user.role === 'creator');
+        var locked = isCreator || !editable;
+
+        var html = '<div class="user-edit-row ms-perm-row">' +
+                   '<div class="ms-perm-title">🔐 分頁使用權限</div>';
+
+        items.forEach(function (it) {
+            var checked = (isCreator || perms[it.key]) ? 'checked' : '';
+            html += '<label class="ms-perm-item' + (locked ? ' is-locked' : '') + '">' +
+                    '<input type="checkbox" class="ms-perm-cb" data-doc="' + user.docId + '" data-perm="' +
+                    core.escAttr(it.key) + '" ' + checked + (locked ? ' disabled' : '') + '> ' +
+                    it.label + '</label>';
+        });
+
+        if (isCreator) {
+            html += '<div class="ms-perm-hint">創世神帳號固定擁有全部分頁權限，無法調整。</div>';
+        } else if (!editable) {
+            html += '<div class="ms-perm-hint">僅創世神／高級管理者可調整分頁權限。</div>';
+        } else {
+            html += '<div class="ms-perm-hint">取消勾選後，該帳號登入時將看不到對應分頁的按鈕與內容。修改後請按下方「更新資料」儲存。</div>';
+        }
+        html += '</div>';
+        return html;
+    }
+
     function renderUsers() {
         var list = document.getElementById('msUserList');
         if (!list) return;
@@ -192,7 +235,8 @@
 
             if (myRole === 'creator' || myRole === 'senior') {
                 if (myRole === 'senior' && isTargetCreator) {
-                    controlsHtml = '<div class="user-edit-row"><span style="color:purple; font-weight:bold;">此為最高權限帳號，無法編輯。</span></div>';
+                    controlsHtml = '<div class="user-edit-row"><span style="color:purple; font-weight:bold;">此為最高權限帳號，無法編輯。</span></div>' +
+                                   permCheckboxesHtml(user, false);
                 } else {
                     var selUser = user.role === 'user' ? 'selected' : '';
                     var selAdmin = user.role === 'admin' ? 'selected' : '';
@@ -210,6 +254,7 @@
                             '<input type="password" id="msPwd_' + user.docId + '" value="' + core.escAttr(user.password || '') + '" readonly style="background:#eee;color:#555;">' +
                             '<button class="btn-icon-eye" onclick="MemberSettingsModule.togglePassword(\'msPwd_' + user.docId + '\')">👁️</button>' +
                         '</div>' +
+                        permCheckboxesHtml(user, true) +
                         '<div style="text-align:right;">' +
                             '<button class="btn-approve" onclick="MemberSettingsModule.updateUser(\'' + user.docId + '\')">' + (user.isApproved ? '更新資料' : '核准/更新') + '</button>' +
                             (!isTargetCreator ? '<button class="btn-reject" onclick="MemberSettingsModule.deleteUser(\'' + user.docId + '\')">刪除</button>' : '') +
@@ -223,6 +268,7 @@
                 controlsHtml =
                     '<div class="user-edit-row"><span class="readonly-text">角色: ' + badgeText + '</span>' +
                     '<span class="readonly-text" style="margin-left:15px;">備註: ' + (user.remarks || '(無)') + '</span></div>' +
+                    permCheckboxesHtml(user, false) +
                     '<div style="text-align:right;">' + actionBtn + '</div>';
             }
 
@@ -241,6 +287,18 @@
             isApproved: true
         };
         if (roleEl && !roleEl.disabled) payload.role = roleEl.value;
+
+        // 收集分頁使用權限勾選結果（disabled 的不寫入，例如創世神）
+        var boxes = document.querySelectorAll('#msUserList .ms-perm-cb[data-doc="' + docId + '"]');
+        var perms = {};
+        var hasEditable = false;
+        [].slice.call(boxes).forEach(function (cb) {
+            if (cb.disabled) return;
+            perms[cb.getAttribute('data-perm')] = cb.checked;
+            hasEditable = true;
+        });
+        if (hasEditable) payload.perms = perms;
+
         core.db.collection('users').doc(docId).update(payload)
             .then(function () { alert('資料已更新'); })
             .catch(function (e) { console.error(e); alert('更新失敗'); });
