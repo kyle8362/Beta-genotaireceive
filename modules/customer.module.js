@@ -227,8 +227,11 @@
     var CustomerModule = {
         key: 'customers',
         viewId: 'customerView',
-        // 此模組的入口按鈕寫在 index.html 的 #btnTabCustomers（全員可用），
-        // 故不需宣告 navButtonId / requiredRoles。
+        // 入口按鈕寫在 index.html 的 #btnTabCustomers，故不宣告 navButtonId。
+        // permKey / permLabel：讓「成員設定管理 → 成員權限」自動長出這一項勾選框。
+        permKey: 'customers',
+        permLabel: '🏢 客戶位置查詢',
+        // 不宣告 requiredRoles → 預設全員可用（與改版前行為相同）
 
         init: function (appCore) {
             core = appCore;
