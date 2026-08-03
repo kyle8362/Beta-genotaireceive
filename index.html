@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="robots" content="noindex, nofollow">
-    <title>中區收送件進度追蹤系統 (v80 Modular)</title>
+    <title>中區收送件進度追蹤系統 (v81 Modular)</title>
 
     <script src="https://unpkg.com/firebase@9.22.2/firebase-app-compat.js"></script>
     <script src="https://unpkg.com/firebase@9.22.2/firebase-firestore-compat.js"></script>
@@ -374,15 +374,25 @@
     //   例：perms: { tasks: true, customers: true, purchase: false }
     //   未設定（舊帳號）→ 沿用預設值，行為與改版前完全相同
     // ==========================================
+    // 已知分頁的權限清單（核心自帶，確保就算某支模組檔案未更新也不會少勾選項）
+    // defaultRoles = null 代表「尚未個別設定時預設全員可用」
     const BUILTIN_PERM_ITEMS = [
-        { key: 'tasks', label: '📋 任務看板', defaultRoles: null }   // defaultRoles=null 代表預設全員可用
+        { key: 'tasks',     label: '📋 任務看板',        defaultRoles: null },
+        { key: 'customers', label: '🏢 客戶位置查詢',    defaultRoles: null },
+        { key: 'purchase',  label: '📦 QIAGEN 採購進度', defaultRoles: ['creator', 'senior', 'admin'] }
     ];
 
-    // 權限清單 = 內建(任務看板) + 各模組自行宣告的 permKey
+    // 權限清單 = 核心清單 + 各模組宣告的 permKey（同 key 則以模組宣告為準）
     function getPermissionItems() {
-        const items = BUILTIN_PERM_ITEMS.slice();
+        const items = BUILTIN_PERM_ITEMS.map(i => Object.assign({}, i));
         AppCore._modules.forEach(m => {
             if (!m.permKey) return;
+            const existing = items.find(i => i.key === m.permKey);
+            if (existing) {
+                if (m.permLabel) existing.label = m.permLabel;
+                if (m.requiredRoles) existing.defaultRoles = m.requiredRoles;
+                return;
+            }
             items.push({ key: m.permKey, label: m.permLabel || m.permKey, defaultRoles: m.requiredRoles || null });
         });
         return items;
@@ -1084,9 +1094,9 @@
 <!-- =====================================================================
      MODULES：每個檔案自成一格，互不相依
      ===================================================================== -->
-<script src="modules/customer.module.js"></script>
-<script src="modules/purchase.module.js"></script>
-<script src="modules/member-settings.module.js"></script>
+<script src="modules/customer.module.js?v=81"></script>
+<script src="modules/purchase.module.js?v=81"></script>
+<script src="modules/member-settings.module.js?v=81"></script>
 
 <script>
     // 所有模組註冊完成後才啟動
